@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>SucataApp</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --primary: #2E7D32;
+      --primary-dark: #1B5E20;
+      --primary-light: #4CAF50;
+      --primary-bg: #E8F5E9;
+      --danger: #C62828;
+      --warning: #E65100;
+      --bg: #F0F2F0;
+      --surface: #FFFFFF;
+      --text: #212121;
+      --text-muted: #757575;
+      --border: #E0E0E0;
+      --shadow: 0 2px 8px rgba(0,0,0,0.1);
+      --radius: 12px;
+      --nav-height: 65px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      overflow-x: hidden;
+    }
+
+    /* ===== LOGIN ===== */
+    #login-screen {
+      min-height: 100dvh;
+      background: linear-gradient(160deg, var(--primary-dark) 0%, var(--primary) 55%, #388E3C 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .login-logo { font-size: 52px; margin-bottom: 8px; }
+    .login-title { font-size: 30px; font-weight: 800; color: white; margin-bottom: 4px; letter-spacing: -0.5px; }
+    .login-subtitle { font-size: 14px; color: rgba(255,255,255,0.75); margin-bottom: 36px; }
+
+    .login-card {
+      background: white;
+      border-radius: 20px;
+      padding: 28px 24px;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+    }
+
+    .login-tab-row {
+      display: flex;
+      gap: 4px;
+      background: var(--bg);
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 24px;
+    }
+
+    .login-tab {
+      flex: 1; padding: 9px; border: none; background: transparent;
+      border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--text-muted);
+      cursor: pointer; transition: all 0.2s;
+    }
+    .login-tab.active { background: white; color: var(--primary); box-shadow: var(--shadow); }
+
+    /* ===== FORMS ===== */
+    .form-group { margin-bottom: 16px; }
+    .form-label { display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.6px; }
+
+    .form-input {
+      width: 100%; padding: 12px 14px; border: 1.5px solid var(--border);
+      border-radius: 10px; font-size: 15px; color: var(--text); background: white;
+      transition: border-color 0.2s; appearance: none; -webkit-appearance: none;
+    }
+    .form-input:focus { outline: none; border-color: var(--primary); }
+    .form-input[readonly] { background: var(--bg); color: var(--primary); font-weight: 700; }
+
+    select.form-input {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23757575' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px;
+    }
+
+    .btn {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 13px 20px; border: none; border-radius: 10px; font-size: 15px;
+      font-weight: 700; cursor: pointer; transition: all 0.15s; text-decoration: none; width: 100%;
+    }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:active { background: var(--primary-dark); transform: scale(0.98); }
+    .btn-cancel { background: var(--bg); color: var(--text); margin-top: 8px; }
+    .btn-danger { background: var(--danger); color: white; }
+
+    .form-error { color: var(--danger); font-size: 13px; text-align: center; margin-bottom: 12px; }
+
+    /* ===== APP LAYOUT ===== */
+    #app { display: none; flex-direction: column; min-height: 100dvh; }
+    #app.active { display: flex; }
+
+    .app-header {
+      background: var(--primary); color: white; padding: 16px 18px 14px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+    .app-header-label { font-size: 11px; opacity: 0.75; font-weight: 500; letter-spacing: 0.3px; }
+    .app-header h1 { font-size: 19px; font-weight: 800; letter-spacing: -0.3px; }
+
+    .header-right { display: flex; align-items: center; gap: 10px; }
+    .avatar {
+      width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,0.22);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 800; color: white;
+    }
+    .logout-btn {
+      width: 34px; height: 34px; border: none; background: rgba(255,255,255,0.18);
+      border-radius: 8px; color: white; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* ===== PAGE ===== */
+    .page-content {
+      flex: 1; padding: 14px 14px calc(var(--nav-height) + 14px);
+      overflow-y: auto; -webkit-overflow-scrolling: touch;
+    }
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* ===== BOTTOM NAV ===== */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      height: var(--nav-height); background: white;
+      border-top: 1px solid var(--border); display: flex;
+      align-items: stretch; z-index: 200;
+      box-shadow: 0 -2px 12px rgba(0,0,0,0.07);
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .nav-item {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 3px; padding: 8px 4px 10px;
+      cursor: pointer; border: none; background: transparent;
+      color: var(--text-muted); font-size: 10px; font-weight: 600;
+      transition: color 0.2s; position: relative;
+    }
+    .nav-item.active { color: var(--primary); }
+    .nav-item svg { width: 22px; height: 22px; }
+    .nav-dot {
+      position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 4px; height: 4px; background: var(--primary); border-radius: 50%;
+      opacity: 0; transition: opacity 0.2s; margin-top: 4px;
+    }
+    .nav-item.active .nav-dot { opacity: 1; }
+
+    /* ===== KPI CARDS ===== */
+    .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+    .kpi-card {
+      background: white; border-radius: var(--radius); padding: 14px 14px 12px;
+      box-shadow: var(--shadow);
+    }
+    .kpi-icon { font-size: 22px; margin-bottom: 6px; }
+    .kpi-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .kpi-value { font-size: 17px; font-weight: 800; color: var(--text); }
+    .kpi-value.green { color: var(--primary); }
+    .kpi-value.orange { color: var(--warning); }
+    .kpi-value.red { color: var(--danger); }
+
+    /* ===== CARD ===== */
+    .card { background: white; border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); margin-bottom: 12px; }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .card-title { font-size: 15px; font-weight: 700; }
+
+    /* ===== LIST ITEMS ===== */
+    .list-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 13px 14px; background: white; border-radius: var(--radius);
+      box-shadow: var(--shadow); margin-bottom: 8px;
+    }
+    .list-icon {
+      width: 42px; height: 42px; border-radius: 10px; background: var(--primary-bg);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; flex-shrink: 0;
+    }
+    .list-body { flex: 1; min-width: 0; }
+    .list-title { font-size: 15px; font-weight: 700; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .list-sub { font-size: 12px; color: var(--text-muted); margin-bottom: 1px; }
+    .list-right { text-align: right; flex-shrink: 0; }
+    .list-value { font-size: 15px; font-weight: 800; color: var(--primary); }
+    .list-actions { display: flex; gap: 6px; }
+
+    /* ===== SECTION ===== */
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .section-title { font-size: 16px; font-weight: 800; }
+
+    /* ===== BADGES ===== */
+    .badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+    .badge-green { background: #E8F5E9; color: var(--primary); }
+    .badge-orange { background: #FFF3E0; color: var(--warning); }
+    .badge-blue { background: #E3F2FD; color: #1565C0; }
+    .badge-red { background: #FFEBEE; color: var(--danger); }
+
+    /* ===== MONTH SELECTOR ===== */
+    .month-selector {
+      display: flex; align-items: center; gap: 10px; background: white;
+      border-radius: var(--radius); padding: 10px 14px; box-shadow: var(--shadow); margin-bottom: 12px;
+    }
+    .month-btn {
+      width: 32px; height: 32px; border: none; background: var(--bg);
+      border-radius: 8px; font-size: 18px; cursor: pointer; display: flex;
+      align-items: center; justify-content: center; font-weight: 700; color: var(--primary);
+    }
+    .month-label { flex: 1; text-align: center; font-weight: 800; font-size: 15px; }
+
+    /* ===== FILTER CHIPS ===== */
+    .filter-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 10px; scrollbar-width: none; }
+    .filter-row::-webkit-scrollbar { display: none; }
+    .filter-chip {
+      flex-shrink: 0; padding: 7px 14px; border-radius: 20px;
+      background: white; border: 1.5px solid var(--border);
+      font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
+    }
+    .filter-chip.active { background: var(--primary); border-color: var(--primary); color: white; }
+
+    /* ===== SUMMARY ROW ===== */
+    .summary-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 12px; scrollbar-width: none; }
+    .summary-row::-webkit-scrollbar { display: none; }
+    .summary-chip { flex-shrink: 0; background: white; border-radius: 10px; padding: 10px 14px; box-shadow: var(--shadow); min-width: 110px; }
+
+    /* ===== MODAL ===== */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 500;
+      display: flex; align-items: flex-end; opacity: 0; pointer-events: none; transition: opacity 0.25s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal {
+      background: white; border-radius: 22px 22px 0 0; width: 100%;
+      max-height: 92dvh; overflow-y: auto; padding: 20px 20px 44px;
+      transform: translateY(100%); transition: transform 0.3s;
+    }
+    .modal-overlay.open .modal { transform: translateY(0); }
+    .modal-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 20px; }
+    .modal-title { font-size: 19px; font-weight: 800; margin-bottom: 20px; text-align: center; }
+
+    /* ===== FAB ===== */
+    .fab {
+      position: fixed; bottom: calc(var(--nav-height) + 14px); right: 16px;
+      width: 56px; height: 56px; border-radius: 50%; background: var(--primary);
+      color: white; border: none; font-size: 26px; display: flex;
+      align-items: center; justify-content: center;
+      box-shadow: 0 4px 18px rgba(46,125,50,0.45); cursor: pointer; z-index: 300;
+      transition: transform 0.15s;
+    }
+    .fab:active { transform: scale(0.9); }
+
+    /* ===== TOAST ===== */
+    .toast {
+      position: fixed; bottom: calc(var(--nav-height) + 78px); left: 50%;
+      transform: translateX(-50%) translateY(12px); background: #323232; color: white;
+      padding: 12px 22px; border-radius: 24px; font-size: 14px; font-weight: 600;
+      opacity: 0; transition: all 0.25s; z-index: 1000;
+      white-space: nowrap; pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ===== CONFIRM ===== */
+    .confirm-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 600;
+      display: flex; align-items: center; justify-content: center; padding: 20px;
+    }
+    .confirm-box { background: white; border-radius: 16px; padding: 24px; width: 100%; max-width: 320px; text-align: center; }
+    .confirm-title { font-size: 17px; font-weight: 800; margin-bottom: 8px; }
+    .confirm-msg { font-size: 14px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.5; }
+    .confirm-actions { display: flex; gap: 10px; }
+    .confirm-actions .btn { flex: 1; margin: 0; }
+
+    /* ===== CHART ===== */
+    .chart-wrap { position: relative; height: 200px; }
+
+    /* ===== VENDA PREVIEW ===== */
+    .venda-preview {
+      background: var(--primary-bg); border-radius: 10px; padding: 12px 14px;
+      margin-bottom: 16px; border-left: 3px solid var(--primary);
+    }
+    .preview-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; }
+    .preview-row:last-child { margin-bottom: 0; }
+    .preview-label { color: var(--text-muted); font-weight: 500; }
+    .preview-val { font-weight: 800; }
+
+    /* ===== EMPTY STATE ===== */
+    .empty-state { text-align: center; padding: 44px 20px; color: var(--text-muted); }
+    .empty-icon { font-size: 52px; margin-bottom: 12px; }
+    .empty-title { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+    .empty-sub { font-size: 14px; }
+
+    /* ===== UTILS ===== */
+    .hidden { display: none !important; }
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .mt-8 { margin-top: 8px; }
+    .icon-btn {
+      width: 34px; height: 34px; border: none; background: var(--bg);
+      border-radius: 8px; cursor: pointer; display: flex;
+      align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0;
+    }
+    .icon-btn.red { background: #FFEBEE; }
+    .spacer { height: 80px; }
+
+    /* Dashboard por material */
+    .mat-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+    }
+    .mat-row:last-child { border-bottom: none; }
+    .mat-row-name { font-weight: 700; font-size: 14px; }
+    .mat-row-sub { font-size: 12px; color: var(--text-muted); }
+    .mat-row-right { text-align: right; }
+    .mat-row-val { font-weight: 800; font-size: 14px; color: var(--primary); }
+    .mat-row-lucro { font-size: 12px; }
+
+    /* Usuario item */
+    .user-avatar {
+      width: 42px; height: 42px; border-radius: 50%; background: var(--primary-bg);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; font-weight: 800; color: var(--primary); flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===== LOGIN SCREEN ===== -->
+<div id="login-screen">
+  <div class="login-logo">♻️</div>
+  <div class="login-title">SucataApp</div>
+  <div class="login-subtitle">Gestão de materiais de sucata</div>
+
+  <div class="login-card">
+    <div class="login-tab-row">
+      <button class="login-tab active" onclick="showLoginTab('login')">Entrar</button>
+      <button class="login-tab" onclick="showLoginTab('register')">Cadastrar</button>
+    </div>
+
+    <div id="login-form">
+      <div class="form-group">
+        <label class="form-label">Usuário</label>
+        <input type="text" id="login-user" class="form-input" placeholder="Digite seu usuário" autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Senha</label>
+        <input type="password" id="login-pass" class="form-input" placeholder="Digite sua senha" autocomplete="current-password">
+      </div>
+      <div id="login-error" class="form-error hidden"></div>
+      <button class="btn btn-primary" onclick="doLogin()">Entrar</button>
+    </div>
+
+    <div id="register-form" class="hidden">
+      <div class="form-group">
+        <label class="form-label">Nome completo</label>
+        <input type="text" id="reg-nome" class="form-input" placeholder="Seu nome">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Usuário</label>
+        <input type="text" id="reg-user" class="form-input" placeholder="Escolha um usuário (sem espaços)">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Senha</label>
+        <input type="password" id="reg-pass" class="form-input" placeholder="Mínimo 4 caracteres">
+      </div>
+      <div id="reg-error" class="form-error hidden"></div>
+      <button class="btn btn-primary" onclick="doRegister()">Criar conta</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== APP ===== -->
+<div id="app">
+  <div class="app-header">
+    <div>
+      <div class="app-header-label">♻️ SucataApp</div>
+      <h1 id="page-title">Dashboard</h1>
+    </div>
+    <div class="header-right">
+      <div class="avatar" id="header-avatar">U</div>
+      <button class="logout-btn" onclick="doLogout()" title="Sair">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="page-content">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="month-selector">
+        <button class="month-btn" onclick="dashChangeMes(-1)">‹</button>
+        <div class="month-label" id="dash-mes-label">—</div>
+        <button class="month-btn" onclick="dashChangeMes(1)">›</button>
+      </div>
+      <div class="kpi-grid" id="dash-kpis"></div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Receita × Lucro por mês</div>
+          <span id="dash-ano-badge" class="badge badge-green"></span>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="chart-receita"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Por material</div>
+          <span id="dash-mes-badge" class="badge badge-blue"></span>
+        </div>
+        <div id="dash-por-material"></div>
+      </div>
+    </div>
+
+    <!-- MATERIAIS -->
+    <div class="page" id="page-materiais">
+      <div id="materiais-list"></div>
+      <div class="spacer"></div>
+    </div>
+
+    <!-- LOTES -->
+    <div class="page" id="page-lotes">
+      <div id="lotes-list"></div>
+      <div class="spacer"></div>
+    </div>
+
+    <!-- VENDAS -->
+    <div class="page" id="page-vendas">
+      <div class="filter-row" id="vendas-filter-row"></div>
+      <div class="summary-row" id="vendas-summary-row"></div>
+      <div id="vendas-list"></div>
+      <div class="spacer"></div>
+    </div>
+
+    <!-- USUÁRIOS -->
+    <div class="page" id="page-usuarios">
+      <div id="usuarios-list"></div>
+      <div class="spacer"></div>
+    </div>
+
+  </div>
+
+  <!-- Bottom Nav -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" onclick="goPage('dashboard')" id="nav-dashboard">
+      <div class="nav-dot"></div>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+        <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+      </svg>
+      Dashboard
+    </button>
+    <button class="nav-item" onclick="goPage('materiais')" id="nav-materiais">
+      <div class="nav-dot"></div>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/>
+      </svg>
+      Materiais
+    </button>
+    <button class="nav-item" onclick="goPage('lotes')" id="nav-lotes">
+      <div class="nav-dot"></div>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+        <polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
+      </svg>
+      Lotes
+    </button>
+    <button class="nav-item" onclick="goPage('vendas')" id="nav-vendas">
+      <div class="nav-dot"></div>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="1" x2="12" y2="23"/>
+        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+      </svg>
+      Vendas
+    </button>
+    <button class="nav-item" onclick="goPage('usuarios')" id="nav-usuarios">
+      <div class="nav-dot"></div>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+        <circle cx="9" cy="7" r="4"/>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+      </svg>
+      Usuários
+    </button>
+  </nav>
+</div>
+
+<!-- FAB -->
+<button class="fab hidden" id="fab" onclick="fabAction()">+</button>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- ===== MODAIS ===== -->
+
+<!-- Modal: Material -->
+<div class="modal-overlay" id="modal-material">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-material-title">Novo Material</div>
+    <input type="hidden" id="mat-edit-id">
+    <div class="form-group">
+      <label class="form-label">Código</label>
+      <input type="text" id="mat-codigo" class="form-input" placeholder="Ex: MAT001">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Tipo do Material</label>
+      <input type="text" id="mat-tipo" class="form-input" placeholder="Ex: Ferro, Cobre, Alumínio...">
+    </div>
+    <div class="row-2">
+      <div class="form-group">
+        <label class="form-label">Preço Venda (R$/kg)</label>
+        <input type="number" id="mat-preco" class="form-input" placeholder="0,00" step="0.01" min="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Custo Padrão (R$/kg)</label>
+        <input type="number" id="mat-custo" class="form-input" placeholder="0,00" step="0.01" min="0">
+      </div>
+    </div>
+    <div id="mat-error" class="form-error hidden"></div>
+    <button class="btn btn-primary" onclick="saveMaterial()">Salvar Material</button>
+    <button class="btn btn-cancel" onclick="closeModal('modal-material')">Cancelar</button>
+  </div>
+</div>
+
+<!-- Modal: Lote -->
+<div class="modal-overlay" id="modal-lote">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Novo Lote de Compra</div>
+    <div class="row-2">
+      <div class="form-group">
+        <label class="form-label">Código do Lote</label>
+        <input type="text" id="lote-codigo" class="form-input" placeholder="Ex: L001">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Data da Compra</label>
+        <input type="date" id="lote-data" class="form-input">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Material</label>
+      <select id="lote-material" class="form-input">
+        <option value="">Selecione o material...</option>
+      </select>
+    </div>
+    <div class="row-2">
+      <div class="form-group">
+        <label class="form-label">Peso Comprado (kg)</label>
+        <input type="number" id="lote-peso" class="form-input" placeholder="0" step="0.01" min="0" oninput="calcLoteCusto()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Custo Total (R$)</label>
+        <input type="number" id="lote-custo-total" class="form-input" placeholder="0,00" step="0.01" min="0" oninput="calcLoteCusto()">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Custo/kg (calculado)</label>
+      <input type="text" id="lote-custo-kg" class="form-input" placeholder="Preencha peso e custo" readonly>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Observação (opcional)</label>
+      <input type="text" id="lote-obs" class="form-input" placeholder="Ex: Fornecedor X">
+    </div>
+    <div id="lote-error" class="form-error hidden"></div>
+    <button class="btn btn-primary" onclick="saveLote()">Registrar Lote</button>
+    <button class="btn btn-cancel" onclick="closeModal('modal-lote')">Cancelar</button>
+  </div>
+</div>
+
+<!-- Modal: Venda -->
+<div class="modal-overlay" id="modal-venda">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-venda-title">Nova Venda</div>
+    <input type="hidden" id="venda-edit-id">
+    <div class="row-2">
+      <div class="form-group">
+        <label class="form-label">Nº Venda</label>
+        <input type="number" id="venda-num" class="form-input" placeholder="1" min="1">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Data</label>
+        <input type="date" id="venda-data" class="form-input">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Material</label>
+      <select id="venda-material" class="form-input" onchange="onVendaMaterialChange()">
+        <option value="">Selecione o material...</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Lote (opcional)</label>
+      <select id="venda-lote" class="form-input" onchange="calcVendaPreview()">
+        <option value="">Sem lote — usar custo padrão</option>
+      </select>
+    </div>
+    <div class="row-2">
+      <div class="form-group">
+        <label class="form-label">Peso Vendido (kg)</label>
+        <input type="number" id="venda-peso" class="form-input" placeholder="0" step="0.01" min="0" oninput="calcVendaPreview()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Valor de Venda (R$/kg)</label>
+        <input type="number" id="venda-valor-kg" class="form-input" placeholder="0,00" step="0.01" min="0" oninput="calcVendaPreview()">
+      </div>
+    </div>
+    <div class="venda-preview hidden" id="venda-preview">
+      <div class="preview-row"><span class="preview-label">Receita Total</span><span class="preview-val" id="prev-receita"></span></div>
+      <div class="preview-row"><span class="preview-label">Custo Total</span><span class="preview-val" style="color:var(--danger)" id="prev-custo"></span></div>
+      <div class="preview-row"><span class="preview-label">Lucro</span><span class="preview-val" id="prev-lucro"></span></div>
+      <div class="preview-row"><span class="preview-label">Margem</span><span class="preview-val" id="prev-margem"></span></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Observação (opcional)</label>
+      <input type="text" id="venda-obs" class="form-input" placeholder="Opcional">
+    </div>
+    <div id="venda-error" class="form-error hidden"></div>
+    <button class="btn btn-primary" onclick="saveVenda()">Registrar Venda</button>
+    <button class="btn btn-cancel" onclick="closeModal('modal-venda')">Cancelar</button>
+  </div>
+</div>
+
+<!-- Modal: Usuário -->
+<div class="modal-overlay" id="modal-usuario">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Novo Usuário</div>
+    <div class="form-group">
+      <label class="form-label">Nome completo</label>
+      <input type="text" id="usr-nome" class="form-input" placeholder="Nome do usuário">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Usuário (login)</label>
+      <input type="text" id="usr-user" class="form-input" placeholder="Login (sem espaços)">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Senha</label>
+      <input type="password" id="usr-pass" class="form-input" placeholder="Mínimo 4 caracteres">
+    </div>
+    <div id="usr-error" class="form-error hidden"></div>
+    <button class="btn btn-primary" onclick="saveUsuario()">Criar Usuário</button>
+    <button class="btn btn-cancel" onclick="closeModal('modal-usuario')">Cancelar</button>
+  </div>
+</div>
+
+<script>
+// ================================================================
+// STORAGE
+// ================================================================
+const DB = {
+  get: k => JSON.parse(localStorage.getItem('sucata_' + k) || '[]'),
+  set: (k, v) => localStorage.setItem('sucata_' + k, JSON.stringify(v)),
+  getOne: k => JSON.parse(localStorage.getItem('sucata_' + k) || 'null'),
+  setOne: (k, v) => localStorage.setItem('sucata_' + k, JSON.stringify(v)),
+};
+
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+// ================================================================
+// FORMAT HELPERS
+// ================================================================
+function fmt(v) {
+  if (v === null || v === undefined || isNaN(Number(v))) return '—';
+  return 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function fmtKg(v) {
+  if (v === null || v === undefined || isNaN(Number(v))) return '—';
+  return Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' kg';
+}
+function fmtPct(v) {
+  if (v === null || v === undefined || isNaN(Number(v))) return '—';
+  return Number(v).toFixed(1) + '%';
+}
+
+// ================================================================
+// TOAST
+// ================================================================
+function toast(msg, ms = 2400) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), ms);
+}
+
+// ================================================================
+// CONFIRM DIALOG
+// ================================================================
+function confirmDialog(title, msg) {
+  return new Promise(resolve => {
+    const div = document.createElement('div');
+    div.className = 'confirm-overlay';
+    div.innerHTML = `
+      <div class="confirm-box">
+        <div class="confirm-title">${title}</div>
+        <div class="confirm-msg">${msg}</div>
+        <div class="confirm-actions">
+          <button class="btn btn-cancel" id="_cno" style="margin:0">Cancelar</button>
+          <button class="btn btn-danger" id="_cyes" style="margin:0">Confirmar</button>
+        </div>
+      </div>`;
+    document.body.appendChild(div);
+    div.querySelector('#_cyes').onclick = () => { div.remove(); resolve(true); };
+    div.querySelector('#_cno').onclick = () => { div.remove(); resolve(false); };
+  });
+}
+
+// ================================================================
+// MODAL
+// ================================================================
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+});
+
+// ================================================================
+// AUTH
+// ================================================================
+let currentUser = null;
+
+function doLogin() {
+  const user = document.getElementById('login-user').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('login-error');
+  if (!user || !pass) { errEl.textContent = 'Preencha usuário e senha.'; errEl.classList.remove('hidden'); return; }
+  const found = DB.get('users').find(u => u.usuario === user && u.senha === pass);
+  if (!found) { errEl.textContent = 'Usuário ou senha inválidos.'; errEl.classList.remove('hidden'); return; }
+  errEl.classList.add('hidden');
+  startSession(found);
+}
+
+function doRegister() {
+  const nome = document.getElementById('reg-nome').value.trim();
+  const user = document.getElementById('reg-user').value.trim().replace(/\s+/g, '');
+  const pass = document.getElementById('reg-pass').value;
+  const errEl = document.getElementById('reg-error');
+  if (!nome || !user || !pass) { errEl.textContent = 'Preencha todos os campos.'; errEl.classList.remove('hidden'); return; }
+  if (pass.length < 4) { errEl.textContent = 'Senha mínima de 4 caracteres.'; errEl.classList.remove('hidden'); return; }
+  const users = DB.get('users');
+  if (users.find(u => u.usuario === user)) { errEl.textContent = 'Usuário já existe.'; errEl.classList.remove('hidden'); return; }
+  const newUser = { id: uid(), nome, usuario: user, senha: pass, criadoEm: new Date().toISOString() };
+  users.push(newUser);
+  DB.set('users', users);
+  errEl.classList.add('hidden');
+  toast('Conta criada!');
+  startSession(newUser);
+}
+
+function startSession(user) {
+  currentUser = user;
+  DB.setOne('session', { userId: user.id });
+  const initials = user.nome.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  document.getElementById('header-avatar').textContent = initials;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').classList.add('active');
+  goPage('dashboard');
+}
+
+function doLogout() {
+  DB.setOne('session', null);
+  currentUser = null;
+  document.getElementById('app').classList.remove('active');
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-user').value = '';
+  document.getElementById('login-pass').value = '';
+  document.getElementById('login-error').classList.add('hidden');
+}
+
+function showLoginTab(tab) {
+  document.querySelectorAll('.login-tab').forEach((t, i) => t.classList.toggle('active', (i === 0) === (tab === 'login')));
+  document.getElementById('login-form').classList.toggle('hidden', tab !== 'login');
+  document.getElementById('register-form').classList.toggle('hidden', tab !== 'register');
+}
+
+// ================================================================
+// NAVIGATION
+// ================================================================
+const PAGE_TITLES = { dashboard: 'Dashboard', materiais: 'Materiais', lotes: 'Lotes de Compra', vendas: 'Vendas', usuarios: 'Usuários' };
+let currentPage = 'dashboard';
+
+function goPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.getElementById('nav-' + page).classList.add('active');
+  document.getElementById('page-title').textContent = PAGE_TITLES[page];
+  currentPage = page;
+  const fab = document.getElementById('fab');
+  fab.classList.toggle('hidden', page === 'dashboard');
+  if (page === 'dashboard') renderDashboard();
+  if (page === 'materiais') renderMateriais();
+  if (page === 'lotes') renderLotes();
+  if (page === 'vendas') renderVendas();
+  if (page === 'usuarios') renderUsuarios();
+}
+
+function fabAction() {
+  if (currentPage === 'materiais') openAddMaterial();
+  if (currentPage === 'lotes') openAddLote();
+  if (currentPage === 'vendas') openAddVenda();
+  if (currentPage === 'usuarios') openAddUsuario();
+}
+
+// ================================================================
+// DASHBOARD
+// ================================================================
+const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const now = new Date();
+let dashMes = now.getMonth();
+let dashAno = now.getFullYear();
+let chartInstance = null;
+
+function dashChangeMes(delta) {
+  dashMes += delta;
+  if (dashMes < 0) { dashMes = 11; dashAno--; }
+  if (dashMes > 11) { dashMes = 0; dashAno++; }
+  renderDashboard();
+}
+
+function getVendasDoMes(mes, ano) {
+  return DB.get('vendas').filter(v => {
+    if (!v.data) return false;
+    const d = new Date(v.data + 'T12:00:00');
+    return d.getMonth() === mes && d.getFullYear() === ano;
+  });
+}
+
+function renderDashboard() {
+  document.getElementById('dash-mes-label').textContent = MESES[dashMes] + ' ' + dashAno;
+  document.getElementById('dash-mes-badge').textContent = MESES[dashMes];
+  document.getElementById('dash-ano-badge').textContent = dashAno;
+
+  const vendas = getVendasDoMes(dashMes, dashAno);
+  const receita = vendas.reduce((s, v) => s + (Number(v.receitaTotal) || 0), 0);
+  const custo = vendas.reduce((s, v) => s + (Number(v.custoTotal) || 0), 0);
+  const lucro = vendas.reduce((s, v) => s + (Number(v.lucro) || 0), 0);
+  const peso = vendas.reduce((s, v) => s + (Number(v.pesoVendido) || 0), 0);
+  const margem = receita > 0 ? (lucro / receita) * 100 : 0;
+
+  document.getElementById('dash-kpis').innerHTML = `
+    <div class="kpi-card"><div class="kpi-icon">💰</div><div class="kpi-label">Receita</div><div class="kpi-value green">${fmt(receita)}</div></div>
+    <div class="kpi-card"><div class="kpi-icon">📦</div><div class="kpi-label">Peso Total</div><div class="kpi-value">${fmtKg(peso)}</div></div>
+    <div class="kpi-card"><div class="kpi-icon">📈</div><div class="kpi-label">Lucro</div><div class="kpi-value ${lucro >= 0 ? 'green' : 'red'}">${fmt(lucro)}</div></div>
+    <div class="kpi-card"><div class="kpi-icon">🎯</div><div class="kpi-label">Margem</div><div class="kpi-value ${margem >= 20 ? 'green' : 'orange'}">${fmtPct(margem)}</div></div>
+  `;
+
+  // Chart
+  const allVendas = DB.get('vendas');
+  const receitaMensal = MESES.map((_, i) =>
+    allVendas.filter(v => { if (!v.data) return false; const d = new Date(v.data + 'T12:00:00'); return d.getMonth() === i && d.getFullYear() === dashAno; })
+      .reduce((s, v) => s + (Number(v.receitaTotal) || 0), 0)
+  );
+  const lucroMensal = MESES.map((_, i) =>
+    allVendas.filter(v => { if (!v.data) return false; const d = new Date(v.data + 'T12:00:00'); return d.getMonth() === i && d.getFullYear() === dashAno; })
+      .reduce((s, v) => s + (Number(v.lucro) || 0), 0)
+  );
+
+  if (chartInstance) chartInstance.destroy();
+  chartInstance = new Chart(document.getElementById('chart-receita'), {
+    type: 'bar',
+    data: {
+      labels: MESES.map(m => m.slice(0, 3)),
+      datasets: [
+        { label: 'Receita', data: receitaMensal, backgroundColor: 'rgba(46,125,50,0.75)', borderRadius: 6 },
+        { label: 'Lucro', data: lucroMensal, backgroundColor: 'rgba(76,175,80,0.45)', borderRadius: 6 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } },
+      scales: {
+        y: { beginAtZero: true, ticks: { callback: v => v >= 1000 ? 'R$' + (v / 1000).toFixed(0) + 'k' : 'R$' + v, font: { size: 10 } }, grid: { color: '#F5F5F5' } },
+        x: { grid: { display: false }, ticks: { font: { size: 10 } } }
+      }
+    }
+  });
+
+  // Por material
+  const porMat = {};
+  vendas.forEach(v => {
+    const k = v.nomeMateria || v.codigoMaterial;
+    if (!porMat[k]) porMat[k] = { receita: 0, peso: 0, lucro: 0 };
+    porMat[k].receita += Number(v.receitaTotal) || 0;
+    porMat[k].peso += Number(v.pesoVendido) || 0;
+    porMat[k].lucro += Number(v.lucro) || 0;
+  });
+
+  const entries = Object.entries(porMat);
+  const matEl = document.getElementById('dash-por-material');
+  if (!entries.length) {
+    matEl.innerHTML = '<div class="empty-state" style="padding:20px 0"><div class="empty-sub">Sem vendas neste mês</div></div>';
+  } else {
+    matEl.innerHTML = entries.sort((a, b) => b[1].receita - a[1].receita).map(([nome, d]) => `
+      <div class="mat-row">
+        <div><div class="mat-row-name">${nome}</div><div class="mat-row-sub">${fmtKg(d.peso)}</div></div>
+        <div class="mat-row-right">
+          <div class="mat-row-val">${fmt(d.receita)}</div>
+          <div class="mat-row-lucro" style="color:${d.lucro >= 0 ? 'var(--primary)' : 'var(--danger)'}">${fmt(d.lucro)} lucro</div>
+        </div>
+      </div>`).join('');
+  }
+}
+
+// ================================================================
+// MATERIAIS
+// ================================================================
+function renderMateriais() {
+  const list = DB.get('materiais');
+  const el = document.getElementById('materiais-list');
+  if (!list.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚙️</div><div class="empty-title">Nenhum material cadastrado</div><div class="empty-sub">Toque em + para adicionar</div></div>`;
+    return;
+  }
+  el.innerHTML = list.map(m => `
+    <div class="list-item">
+      <div class="list-icon">♻️</div>
+      <div class="list-body">
+        <div class="list-title">${m.tipo}</div>
+        <div class="list-sub">${m.codigo}</div>
+        <div class="list-sub">Custo padrão: ${fmt(m.custoPadrao)}/kg</div>
+      </div>
+      <div class="list-right">
+        <div class="list-value" style="font-size:14px">${fmt(m.precoVenda)}/kg</div>
+        <div class="list-sub" style="margin-bottom:6px">venda</div>
+        <div class="list-actions">
+          <button class="icon-btn" onclick="editMaterial('${m.id}')">✏️</button>
+          <button class="icon-btn red" onclick="deleteMaterial('${m.id}')">🗑️</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function openAddMaterial() {
+  document.getElementById('mat-edit-id').value = '';
+  document.getElementById('mat-codigo').value = '';
+  document.getElementById('mat-tipo').value = '';
+  document.getElementById('mat-preco').value = '';
+  document.getElementById('mat-custo').value = '';
+  document.getElementById('mat-error').classList.add('hidden');
+  document.getElementById('modal-material-title').textContent = 'Novo Material';
+  openModal('modal-material');
+}
+
+function editMaterial(id) {
+  const mat = DB.get('materiais').find(m => m.id === id);
+  if (!mat) return;
+  document.getElementById('mat-edit-id').value = mat.id;
+  document.getElementById('mat-codigo').value = mat.codigo;
+  document.getElementById('mat-tipo').value = mat.tipo;
+  document.getElementById('mat-preco').value = mat.precoVenda;
+  document.getElementById('mat-custo').value = mat.custoPadrao;
+  document.getElementById('mat-error').classList.add('hidden');
+  document.getElementById('modal-material-title').textContent = 'Editar Material';
+  openModal('modal-material');
+}
+
+function saveMaterial() {
+  const editId = document.getElementById('mat-edit-id').value;
+  const codigo = document.getElementById('mat-codigo').value.trim().toUpperCase();
+  const tipo = document.getElementById('mat-tipo').value.trim();
+  const preco = parseFloat(document.getElementById('mat-preco').value);
+  const custo = parseFloat(document.getElementById('mat-custo').value);
+  const errEl = document.getElementById('mat-error');
+
+  if (!codigo || !tipo || isNaN(preco) || isNaN(custo) || preco < 0 || custo < 0) {
+    errEl.textContent = 'Preencha todos os campos corretamente.'; errEl.classList.remove('hidden'); return;
+  }
+
+  const list = DB.get('materiais');
+  if (editId) {
+    const idx = list.findIndex(m => m.id === editId);
+    if (idx >= 0) list[idx] = { ...list[idx], codigo, tipo, precoVenda: preco, custoPadrao: custo };
+    toast('Material atualizado!');
+  } else {
+    if (list.find(m => m.codigo === codigo)) { errEl.textContent = 'Código já existe.'; errEl.classList.remove('hidden'); return; }
+    list.push({ id: uid(), codigo, tipo, precoVenda: preco, custoPadrao: custo });
+    toast('Material cadastrado!');
+  }
+  DB.set('materiais', list);
+  closeModal('modal-material');
+  renderMateriais();
+}
+
+async function deleteMaterial(id) {
+  const mat = DB.get('materiais').find(m => m.id === id);
+  if (!await confirmDialog('Excluir Material', `Deseja excluir "${mat?.tipo}"?`)) return;
+  DB.set('materiais', DB.get('materiais').filter(m => m.id !== id));
+  toast('Material excluído.');
+  renderMateriais();
+}
+
+// ================================================================
+// LOTES
+// ================================================================
+function renderLotes() {
+  const list = DB.get('lotes');
+  const materiais = DB.get('materiais');
+  const el = document.getElementById('lotes-list');
+  if (!list.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">📦</div><div class="empty-title">Nenhum lote registrado</div><div class="empty-sub">Toque em + para registrar uma compra</div></div>`;
+    return;
+  }
+  el.innerHTML = [...list].sort((a, b) => new Date(b.dataCompra) - new Date(a.dataCompra)).map(l => {
+    const mat = materiais.find(m => m.codigo === l.codigoMaterial);
+    const dataFmt = l.dataCompra ? new Date(l.dataCompra + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
+    return `
+    <div class="list-item">
+      <div class="list-icon">📦</div>
+      <div class="list-body">
+        <div class="list-title">${l.codigo}</div>
+        <div class="list-sub">${mat?.tipo || l.codigoMaterial} · ${dataFmt}</div>
+        <div class="list-sub">${fmtKg(l.pesoComprado)} comprados</div>
+      </div>
+      <div class="list-right">
+        <div class="list-value" style="font-size:13px">${fmt(l.custoPorKg)}/kg</div>
+        <div class="list-sub">custo/kg</div>
+        <button class="icon-btn red mt-8" onclick="deleteLote('${l.id}')">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openAddLote() {
+  const materiais = DB.get('materiais');
+  if (!materiais.length) { toast('Cadastre materiais antes!'); return; }
+  const sel = document.getElementById('lote-material');
+  sel.innerHTML = '<option value="">Selecione o material...</option>' +
+    materiais.map(m => `<option value="${m.codigo}">${m.tipo} (${m.codigo})</option>`).join('');
+  document.getElementById('lote-codigo').value = '';
+  document.getElementById('lote-data').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('lote-peso').value = '';
+  document.getElementById('lote-custo-total').value = '';
+  document.getElementById('lote-custo-kg').value = '';
+  document.getElementById('lote-obs').value = '';
+  document.getElementById('lote-error').classList.add('hidden');
+  openModal('modal-lote');
+}
+
+function calcLoteCusto() {
+  const peso = parseFloat(document.getElementById('lote-peso').value);
+  const total = parseFloat(document.getElementById('lote-custo-total').value);
+  document.getElementById('lote-custo-kg').value =
+    (peso > 0 && total >= 0 && !isNaN(peso) && !isNaN(total))
+      ? 'R$ ' + (total / peso).toFixed(2).replace('.', ',') + '/kg'
+      : '';
+}
+
+function saveLote() {
+  const codigo = document.getElementById('lote-codigo').value.trim().toUpperCase();
+  const data = document.getElementById('lote-data').value;
+  const codigoMaterial = document.getElementById('lote-material').value;
+  const peso = parseFloat(document.getElementById('lote-peso').value);
+  const custoTotal = parseFloat(document.getElementById('lote-custo-total').value);
+  const obs = document.getElementById('lote-obs').value.trim();
+  const errEl = document.getElementById('lote-error');
+
+  if (!codigo || !data || !codigoMaterial || isNaN(peso) || isNaN(custoTotal) || peso <= 0) {
+    errEl.textContent = 'Preencha todos os campos obrigatórios.'; errEl.classList.remove('hidden'); return;
+  }
+  const lotes = DB.get('lotes');
+  if (lotes.find(l => l.codigo === codigo)) { errEl.textContent = 'Código de lote já existe.'; errEl.classList.remove('hidden'); return; }
+  lotes.push({ id: uid(), codigo, dataCompra: data, codigoMaterial, pesoComprado: peso, custoTotal, custoPorKg: custoTotal / peso, observacao: obs });
+  DB.set('lotes', lotes);
+  closeModal('modal-lote');
+  toast('Lote registrado!');
+  renderLotes();
+}
+
+async function deleteLote(id) {
+  const lote = DB.get('lotes').find(l => l.id === id);
+  if (!await confirmDialog('Excluir Lote', `Deseja excluir o lote "${lote?.codigo}"?`)) return;
+  DB.set('lotes', DB.get('lotes').filter(l => l.id !== id));
+  toast('Lote excluído.');
+  renderLotes();
+}
+
+// ================================================================
+// VENDAS
+// ================================================================
+let vendasMesSel = now.getMonth();
+let vendasAnoSel = now.getFullYear();
+
+function renderVendas() {
+  document.getElementById('vendas-filter-row').innerHTML = MESES.map((m, i) =>
+    `<div class="filter-chip ${i === vendasMesSel ? 'active' : ''}" onclick="selectVendasMes(${i})">${m.slice(0, 3)}</div>`
+  ).join('');
+
+  const vendas = getVendasDoMes(vendasMesSel, vendasAnoSel);
+  const receita = vendas.reduce((s, v) => s + (Number(v.receitaTotal) || 0), 0);
+  const lucro = vendas.reduce((s, v) => s + (Number(v.lucro) || 0), 0);
+  const peso = vendas.reduce((s, v) => s + (Number(v.pesoVendido) || 0), 0);
+
+  document.getElementById('vendas-summary-row').innerHTML = `
+    <div class="summary-chip"><div class="kpi-label">Vendas</div><div class="kpi-value">${vendas.length}</div></div>
+    <div class="summary-chip"><div class="kpi-label">Receita</div><div class="kpi-value green">${fmt(receita)}</div></div>
+    <div class="summary-chip"><div class="kpi-label">Lucro</div><div class="kpi-value ${lucro >= 0 ? 'green' : 'red'}">${fmt(lucro)}</div></div>
+    <div class="summary-chip"><div class="kpi-label">Peso</div><div class="kpi-value">${fmtKg(peso)}</div></div>`;
+
+  const el = document.getElementById('vendas-list');
+  if (!vendas.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">💸</div><div class="empty-title">Sem vendas em ${MESES[vendasMesSel]}</div><div class="empty-sub">Toque em + para registrar</div></div>`;
+    return;
+  }
+  el.innerHTML = [...vendas].sort((a, b) => new Date(b.data) - new Date(a.data)).map(v => {
+    const dataFmt = v.data ? new Date(v.data + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
+    const mg = Number(v.margem) || 0;
+    return `
+    <div class="list-item">
+      <div class="list-icon">💸</div>
+      <div class="list-body">
+        <div class="list-title">#${v.numeroVenda} · ${v.nomeMateria}</div>
+        <div class="list-sub">${dataFmt} · ${fmtKg(v.pesoVendido)}</div>
+        <div class="list-sub">${v.codigoLote ? 'Lote: ' + v.codigoLote : 'Custo padrão'}</div>
+      </div>
+      <div class="list-right">
+        <div class="list-value">${fmt(v.receitaTotal)}</div>
+        <span class="${mg >= 0 ? 'badge badge-green' : 'badge badge-red'}" style="margin-top:4px;display:inline-flex">${fmtPct(v.margem)}</span>
+        <div class="list-actions" style="margin-top:6px;justify-content:flex-end">
+          <button class="icon-btn" onclick="editVenda('${v.id}')">✏️</button>
+          <button class="icon-btn red" onclick="deleteVenda('${v.id}')">🗑️</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function selectVendasMes(i) { vendasMesSel = i; renderVendas(); }
+
+function onVendaMaterialChange() {
+  const codigo = document.getElementById('venda-material').value;
+  const lotes = DB.get('lotes').filter(l => l.codigoMaterial === codigo);
+  document.getElementById('venda-lote').innerHTML =
+    '<option value="">Sem lote — usar custo padrão</option>' +
+    lotes.map(l => {
+      const d = l.dataCompra ? new Date(l.dataCompra + 'T12:00:00').toLocaleDateString('pt-BR') : '';
+      return `<option value="${l.codigo}">${l.codigo} — ${fmt(l.custoPorKg)}/kg (${d})</option>`;
+    }).join('');
+  if (codigo) {
+    const mat = DB.get('materiais').find(m => m.codigo === codigo);
+    if (mat) document.getElementById('venda-valor-kg').value = mat.precoVenda;
+  }
+  calcVendaPreview();
+}
+
+function calcVendaPreview() {
+  const peso = parseFloat(document.getElementById('venda-peso').value);
+  const valorKg = parseFloat(document.getElementById('venda-valor-kg').value);
+  const codigoMat = document.getElementById('venda-material').value;
+  const codigoLote = document.getElementById('venda-lote').value;
+  const prev = document.getElementById('venda-preview');
+  if (!peso || !valorKg || !codigoMat || isNaN(peso) || isNaN(valorKg)) { prev.classList.add('hidden'); return; }
+
+  let custoKg = 0;
+  if (codigoLote) {
+    const lote = DB.get('lotes').find(l => l.codigo === codigoLote);
+    custoKg = lote ? lote.custoPorKg : 0;
+  } else {
+    const mat = DB.get('materiais').find(m => m.codigo === codigoMat);
+    custoKg = mat ? mat.custoPadrao : 0;
+  }
+  const receita = peso * valorKg;
+  const custo = peso * custoKg;
+  const lucro = receita - custo;
+  const margem = receita > 0 ? (lucro / receita) * 100 : 0;
+
+  document.getElementById('prev-receita').textContent = fmt(receita);
+  document.getElementById('prev-custo').textContent = fmt(custo);
+  document.getElementById('prev-lucro').textContent = fmt(lucro);
+  document.getElementById('prev-lucro').style.color = lucro >= 0 ? 'var(--primary)' : 'var(--danger)';
+  document.getElementById('prev-margem').textContent = fmtPct(margem);
+  document.getElementById('prev-margem').style.color = margem >= 0 ? 'var(--primary)' : 'var(--danger)';
+  prev.classList.remove('hidden');
+}
+
+function openAddVenda() {
+  const materiais = DB.get('materiais');
+  if (!materiais.length) { toast('Cadastre materiais antes!'); return; }
+  document.getElementById('venda-edit-id').value = '';
+  document.getElementById('modal-venda-title').textContent = 'Nova Venda';
+  document.getElementById('venda-material').innerHTML =
+    '<option value="">Selecione o material...</option>' +
+    materiais.map(m => `<option value="${m.codigo}">${m.tipo} (${m.codigo})</option>`).join('');
+  document.getElementById('venda-lote').innerHTML = '<option value="">Sem lote — usar custo padrão</option>';
+  const mesVendas = getVendasDoMes(vendasMesSel, vendasAnoSel);
+  const maxNum = mesVendas.reduce((mx, v) => Math.max(mx, Number(v.numeroVenda) || 0), 0);
+  document.getElementById('venda-num').value = maxNum + 1;
+  const d = new Date(vendasAnoSel, vendasMesSel, Math.min(new Date().getDate(), 28));
+  document.getElementById('venda-data').value = d.toISOString().slice(0, 10);
+  document.getElementById('venda-peso').value = '';
+  document.getElementById('venda-valor-kg').value = '';
+  document.getElementById('venda-obs').value = '';
+  document.getElementById('venda-preview').classList.add('hidden');
+  document.getElementById('venda-error').classList.add('hidden');
+  openModal('modal-venda');
+}
+
+function editVenda(id) {
+  const v = DB.get('vendas').find(v => v.id === id);
+  if (!v) return;
+  const materiais = DB.get('materiais');
+  document.getElementById('venda-edit-id').value = v.id;
+  document.getElementById('modal-venda-title').textContent = 'Editar Venda';
+  document.getElementById('venda-material').innerHTML =
+    '<option value="">Selecione o material...</option>' +
+    materiais.map(m => `<option value="${m.codigo}" ${m.codigo === v.codigoMaterial ? 'selected' : ''}>${m.tipo} (${m.codigo})</option>`).join('');
+  // Carrega lotes do material
+  const lotes = DB.get('lotes').filter(l => l.codigoMaterial === v.codigoMaterial);
+  document.getElementById('venda-lote').innerHTML =
+    '<option value="">Sem lote — usar custo padrão</option>' +
+    lotes.map(l => {
+      const d = l.dataCompra ? new Date(l.dataCompra + 'T12:00:00').toLocaleDateString('pt-BR') : '';
+      return `<option value="${l.codigo}" ${l.codigo === v.codigoLote ? 'selected' : ''}>${l.codigo} — ${fmt(l.custoPorKg)}/kg (${d})</option>`;
+    }).join('');
+  document.getElementById('venda-num').value = v.numeroVenda;
+  document.getElementById('venda-data').value = v.data;
+  document.getElementById('venda-peso').value = v.pesoVendido;
+  document.getElementById('venda-valor-kg').value = v.valorVendaKg;
+  document.getElementById('venda-obs').value = v.obs || '';
+  document.getElementById('venda-error').classList.add('hidden');
+  calcVendaPreview();
+  openModal('modal-venda');
+}
+
+function saveVenda() {
+  const editId = document.getElementById('venda-edit-id').value;
+  const num = parseInt(document.getElementById('venda-num').value);
+  const data = document.getElementById('venda-data').value;
+  const codigoMat = document.getElementById('venda-material').value;
+  const codigoLote = document.getElementById('venda-lote').value;
+  const peso = parseFloat(document.getElementById('venda-peso').value);
+  const valorKg = parseFloat(document.getElementById('venda-valor-kg').value);
+  const obs = document.getElementById('venda-obs').value.trim();
+  const errEl = document.getElementById('venda-error');
+
+  if (!data || !codigoMat || isNaN(peso) || isNaN(valorKg) || peso <= 0 || valorKg <= 0) {
+    errEl.textContent = 'Preencha todos os campos obrigatórios.'; errEl.classList.remove('hidden'); return;
+  }
+  const mat = DB.get('materiais').find(m => m.codigo === codigoMat);
+  let custoKg = mat ? mat.custoPadrao : 0;
+  if (codigoLote) {
+    const lote = DB.get('lotes').find(l => l.codigo === codigoLote);
+    if (lote) custoKg = lote.custoPorKg;
+  }
+  const receitaTotal = peso * valorKg;
+  const custoTotal = peso * custoKg;
+  const lucro = receitaTotal - custoTotal;
+  const margem = receitaTotal > 0 ? (lucro / receitaTotal) * 100 : 0;
+  const vendas = DB.get('vendas');
+
+  if (editId) {
+    const idx = vendas.findIndex(v => v.id === editId);
+    if (idx >= 0) {
+      vendas[idx] = { ...vendas[idx], numeroVenda: num, data, codigoMaterial: codigoMat, nomeMateria: mat?.tipo || codigoMat, codigoLote: codigoLote || null, pesoVendido: peso, valorVendaKg: valorKg, custoKg, receitaTotal, custoTotal, lucro, margem, obs };
+    }
+    toast('Venda atualizada!');
+  } else {
+    vendas.push({ id: uid(), numeroVenda: num || vendas.length + 1, data, codigoMaterial: codigoMat, nomeMateria: mat?.tipo || codigoMat, codigoLote: codigoLote || null, pesoVendido: peso, valorVendaKg: valorKg, custoKg, receitaTotal, custoTotal, lucro, margem, obs, registradoPor: currentUser?.nome || '' });
+    toast('Venda registrada!');
+  }
+  DB.set('vendas', vendas);
+  closeModal('modal-venda');
+  renderVendas();
+}
+
+async function deleteVenda(id) {
+  if (!await confirmDialog('Excluir Venda', 'Deseja remover esta venda?')) return;
+  DB.set('vendas', DB.get('vendas').filter(v => v.id !== id));
+  toast('Venda removida.');
+  renderVendas();
+}
+
+// ================================================================
+// USUÁRIOS
+// ================================================================
+function renderUsuarios() {
+  const users = DB.get('users');
+  const el = document.getElementById('usuarios-list');
+  if (!users.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">👤</div><div class="empty-title">Nenhum usuário</div></div>`;
+    return;
+  }
+  el.innerHTML = users.map(u => {
+    const initials = u.nome.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    const isMe = currentUser && u.id === currentUser.id;
+    const dataCriacao = new Date(u.criadoEm).toLocaleDateString('pt-BR');
+    return `
+    <div class="list-item">
+      <div class="user-avatar">${initials}</div>
+      <div class="list-body">
+        <div class="list-title">${u.nome} ${isMe ? '<span class="badge badge-green" style="font-size:10px">Você</span>' : ''}</div>
+        <div class="list-sub">@${u.usuario}</div>
+        <div class="list-sub">Desde ${dataCriacao}</div>
+      </div>
+      ${!isMe ? `<button class="icon-btn red" onclick="deleteUsuario('${u.id}')">🗑️</button>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function openAddUsuario() {
+  document.getElementById('usr-nome').value = '';
+  document.getElementById('usr-user').value = '';
+  document.getElementById('usr-pass').value = '';
+  document.getElementById('usr-error').classList.add('hidden');
+  openModal('modal-usuario');
+}
+
+function saveUsuario() {
+  const nome = document.getElementById('usr-nome').value.trim();
+  const user = document.getElementById('usr-user').value.trim().replace(/\s+/g, '');
+  const pass = document.getElementById('usr-pass').value;
+  const errEl = document.getElementById('usr-error');
+  if (!nome || !user || !pass) { errEl.textContent = 'Preencha todos os campos.'; errEl.classList.remove('hidden'); return; }
+  if (pass.length < 4) { errEl.textContent = 'Senha mínima de 4 caracteres.'; errEl.classList.remove('hidden'); return; }
+  const users = DB.get('users');
+  if (users.find(u => u.usuario === user)) { errEl.textContent = 'Usuário já existe.'; errEl.classList.remove('hidden'); return; }
+  users.push({ id: uid(), nome, usuario: user, senha: pass, criadoEm: new Date().toISOString() });
+  DB.set('users', users);
+  closeModal('modal-usuario');
+  toast('Usuário criado!');
+  renderUsuarios();
+}
+
+async function deleteUsuario(id) {
+  const u = DB.get('users').find(u => u.id === id);
+  if (!await confirmDialog('Remover Usuário', `Remover "${u?.nome}" do sistema?`)) return;
+  DB.set('users', DB.get('users').filter(u => u.id !== id));
+  toast('Usuário removido.');
+  renderUsuarios();
+}
+
+// ================================================================
+// INIT
+// ================================================================
+(function init() {
+  const session = DB.getOne('session');
+  if (session?.userId) {
+    const user = DB.get('users').find(u => u.id === session.userId);
+    if (user) { startSession(user); return; }
+  }
+  document.getElementById('login-screen').style.display = 'flex';
+})();
+</script>
+</body>
+</html>
