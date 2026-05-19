@@ -5,22 +5,23 @@ const auth   = require('../middleware/auth');
 
 // GET /api/usuarios
 router.get('/', auth, async (req, res) => {
-  const { rows } = await db.query('SELECT id, nome, usuario, criado_em FROM usuarios ORDER BY criado_em');
+  const { rows } = await db.query('SELECT id, nome, usuario, email, criado_em FROM usuarios ORDER BY criado_em');
   res.json(rows);
 });
 
 // POST /api/usuarios
 router.post('/', auth, async (req, res) => {
-  const { nome, usuario, senha } = req.body;
+  const { nome, usuario, senha, email } = req.body;
   if (!nome || !usuario || !senha) return res.status(400).json({ erro: 'Preencha todos os campos.' });
   if (senha.length < 4) return res.status(400).json({ erro: 'Senha mínima de 4 caracteres.' });
+  if (email && !email.includes('@')) return res.status(400).json({ erro: 'E-mail inválido.' });
   try {
     const existe = await db.query('SELECT id FROM usuarios WHERE usuario = $1', [usuario]);
     if (existe.rows.length) return res.status(409).json({ erro: 'Usuário já existe.' });
     const hash = await bcrypt.hash(senha, 10);
     const { rows } = await db.query(
-      'INSERT INTO usuarios (nome, usuario, senha_hash) VALUES ($1, $2, $3) RETURNING id, nome, usuario, criado_em',
-      [nome, usuario, hash]
+      'INSERT INTO usuarios (nome, usuario, senha_hash, email) VALUES ($1, $2, $3, $4) RETURNING id, nome, usuario, email, criado_em',
+      [nome, usuario, hash, email?.trim().toLowerCase() || null]
     );
     res.status(201).json(rows[0]);
   } catch (e) {
@@ -42,6 +43,33 @@ router.put('/:id/senha', auth, async (req, res) => {
     const hash = await bcrypt.hash(novaSenha, 10);
     await db.query('UPDATE usuarios SET senha_hash = $1 WHERE id = $2', [hash, req.params.id]);
     res.json({ mensagem: 'Senha atualizada.' });
+  } catch (e) {
+    res.status(500).json({ erro: 'Erro interno.' });
+  }
+});
+
+// POST /api/usuarios/:id/reset-senha  — gera senha temporária (qualquer usuário logado pode usar)
+router.post('/:id/reset-senha', auth, async (req, res) => {
+  // Não pode resetar a própria senha por aqui (use /senha)
+  if (String(req.user.id) === String(req.params.id))
+    return res.status(400).json({ erro: 'Use "Alterar Senha" para trocar sua própria senha.' });
+  try {
+    const { rows } = await db.query('SELECT id, nome, usuario FROM usuarios WHERE id = $1', [req.params.id]);
+    if (!rows.length) return res.status(404).json({ erro: 'Usuário não encontrado.' });
+    // Gera senha temporária: 3 letras maiúsculas + 3 números + 2 caracteres especiais
+    const chars  = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    const nums   = '23456789';
+    const temp   = [
+      chars[Math.floor(Math.random() * chars.length)],
+      chars[Math.floor(Math.random() * chars.length)],
+      chars[Math.floor(Math.random() * chars.length)],
+      nums[Math.floor(Math.random() * nums.length)],
+      nums[Math.floor(Math.random() * nums.length)],
+      nums[Math.floor(Math.random() * nums.length)],
+    ].sort(() => Math.random() - 0.5).join('');
+    const hash = await bcrypt.hash(temp, 10);
+    await db.query('UPDATE usuarios SET senha_hash = $1 WHERE id = $2', [hash, req.params.id]);
+    res.json({ senhaTemproraria: temp, usuario: rows[0].usuario, nome: rows[0].nome });
   } catch (e) {
     res.status(500).json({ erro: 'Erro interno.' });
   }

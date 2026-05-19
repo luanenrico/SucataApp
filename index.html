@@ -363,6 +363,39 @@
       </div>
       <div id="login-error" class="form-error hidden"></div>
       <button class="btn btn-primary" onclick="doLogin()">Entrar</button>
+      <button type="button" onclick="showLoginTab('forgot')" style="background:none;border:none;color:var(--primary);font-size:13px;margin-top:8px;cursor:pointer;width:100%;text-align:center">
+        Esqueci minha senha
+      </button>
+    </div>
+
+    <div id="forgot-form" class="hidden">
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.5">
+        Informe seu e-mail cadastrado e enviaremos um link para redefinir sua senha.
+      </p>
+      <div class="form-group">
+        <label class="form-label">E-mail</label>
+        <input type="email" id="forgot-email" class="form-input" placeholder="seuemail@gmail.com">
+      </div>
+      <div id="forgot-msg" class="hidden" style="background:var(--primary-bg);border-radius:10px;padding:12px;font-size:13px;color:var(--primary);margin-bottom:12px;text-align:center"></div>
+      <div id="forgot-error" class="form-error hidden"></div>
+      <button class="btn btn-primary" onclick="doEsqueciSenha()">Enviar link de redefinição</button>
+      <button class="btn btn-cancel" onclick="showLoginTab('login')" style="margin-top:8px">Voltar ao login</button>
+    </div>
+
+    <div id="reset-form" class="hidden">
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.5">
+        Digite sua nova senha abaixo.
+      </p>
+      <div class="form-group">
+        <label class="form-label">Nova Senha</label>
+        <input type="password" id="reset-nova" class="form-input" placeholder="Mínimo 4 caracteres">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Confirmar Nova Senha</label>
+        <input type="password" id="reset-confirma" class="form-input" placeholder="Repita a nova senha">
+      </div>
+      <div id="reset-error" class="form-error hidden"></div>
+      <button class="btn btn-primary" onclick="doResetSenha()">Salvar Nova Senha</button>
     </div>
 
     <div id="register-form" class="hidden">
@@ -373,6 +406,10 @@
       <div class="form-group">
         <label class="form-label">Usuário</label>
         <input type="text" id="reg-user" class="form-input" placeholder="Escolha um usuário (sem espaços)">
+      </div>
+      <div class="form-group">
+        <label class="form-label">E-mail <span style="color:var(--text-muted);font-weight:400">(para recuperar senha)</span></label>
+        <input type="email" id="reg-email" class="form-input" placeholder="seuemail@gmail.com">
       </div>
       <div class="form-group">
         <label class="form-label">Senha</label>
@@ -670,12 +707,35 @@
       <input type="text" id="usr-user" class="form-input" placeholder="Login (sem espaços)">
     </div>
     <div class="form-group">
+      <label class="form-label">E-mail <span style="color:var(--text-muted);font-weight:400">(para recuperar senha)</span></label>
+      <input type="email" id="usr-email" class="form-input" placeholder="email@gmail.com">
+    </div>
+    <div class="form-group">
       <label class="form-label">Senha</label>
       <input type="password" id="usr-pass" class="form-input" placeholder="Mínimo 4 caracteres">
     </div>
     <div id="usr-error" class="form-error hidden"></div>
     <button class="btn btn-primary" onclick="saveUsuario()">Criar Usuário</button>
     <button class="btn btn-cancel" onclick="closeModal('modal-usuario')">Cancelar</button>
+  </div>
+</div>
+
+<!-- Modal: Senha Temporária (resultado do reset) -->
+<div class="modal-overlay" id="modal-senha-temp">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🔓 Senha Temporária Gerada</div>
+    <p style="font-size:14px;color:var(--text-muted);margin-bottom:16px;line-height:1.5">
+      Passe esta senha para <strong id="temp-nome-usuario"></strong>.<br>
+      Ela deverá trocar a senha após o primeiro acesso.
+    </p>
+    <div style="background:var(--primary-bg);border:2px dashed var(--primary);border-radius:12px;padding:20px;text-align:center;margin-bottom:20px">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">Senha temporária</div>
+      <div id="temp-senha-valor" style="font-size:28px;font-weight:800;letter-spacing:6px;color:var(--primary);font-family:monospace"></div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:6px">Login: <strong id="temp-login-usuario"></strong></div>
+    </div>
+    <button class="btn btn-primary" onclick="copiarSenhaTemp()">📋 Copiar Senha</button>
+    <button class="btn btn-cancel" onclick="closeModal('modal-senha-temp')">Fechar</button>
   </div>
 </div>
 
@@ -822,15 +882,48 @@ async function doLogin() {
 async function doRegister() {
   const nome    = document.getElementById('reg-nome').value.trim();
   const usuario = document.getElementById('reg-user').value.trim().replace(/\s+/g, '');
+  const email   = document.getElementById('reg-email').value.trim();
   const senha   = document.getElementById('reg-pass').value;
   const errEl   = document.getElementById('reg-error');
   if (!nome || !usuario || !senha) { errEl.textContent = 'Preencha todos os campos.'; errEl.classList.remove('hidden'); return; }
   try {
-    const data = await api('POST', '/auth/register', { nome, usuario, senha });
+    const data = await api('POST', '/auth/register', { nome, usuario, senha, email: email || undefined });
     errEl.classList.add('hidden');
     saveToken(data.token);
     toast('Conta criada!');
     startSession(data.user);
+  } catch (e) { errEl.textContent = e.message; errEl.classList.remove('hidden'); }
+}
+
+async function doEsqueciSenha() {
+  const email = document.getElementById('forgot-email').value.trim();
+  const errEl = document.getElementById('forgot-error');
+  const msgEl = document.getElementById('forgot-msg');
+  if (!email) { errEl.textContent = 'Informe seu e-mail.'; errEl.classList.remove('hidden'); return; }
+  try {
+    const data = await api('POST', '/auth/esqueci-senha', { email });
+    errEl.classList.add('hidden');
+    msgEl.textContent = data.mensagem;
+    msgEl.classList.remove('hidden');
+    document.getElementById('forgot-email').value = '';
+  } catch (e) { errEl.textContent = e.message; errEl.classList.remove('hidden'); }
+}
+
+async function doResetSenha() {
+  const token    = new URLSearchParams(window.location.search).get('reset');
+  const novaSenha  = document.getElementById('reset-nova').value;
+  const confirma   = document.getElementById('reset-confirma').value;
+  const errEl      = document.getElementById('reset-error');
+  if (!novaSenha || !confirma) { errEl.textContent = 'Preencha todos os campos.'; errEl.classList.remove('hidden'); return; }
+  if (novaSenha.length < 4)    { errEl.textContent = 'Senha mínima de 4 caracteres.'; errEl.classList.remove('hidden'); return; }
+  if (novaSenha !== confirma)  { errEl.textContent = 'As senhas não coincidem.'; errEl.classList.remove('hidden'); return; }
+  try {
+    const data = await api('POST', '/auth/reset-senha', { token, novaSenha });
+    errEl.classList.add('hidden');
+    toast(data.mensagem);
+    // Limpa o token da URL e volta ao login
+    window.history.replaceState({}, '', '/');
+    showLoginTab('login');
   } catch (e) { errEl.textContent = e.message; errEl.classList.remove('hidden'); }
 }
 
@@ -858,8 +951,10 @@ function doLogout() {
 
 function showLoginTab(tab) {
   document.querySelectorAll('.login-tab').forEach((t, i) => t.classList.toggle('active', (i === 0) === (tab === 'login')));
-  document.getElementById('login-form').classList.toggle('hidden', tab !== 'login');
+  document.getElementById('login-form').classList.toggle('hidden',    tab !== 'login');
   document.getElementById('register-form').classList.toggle('hidden', tab !== 'register');
+  document.getElementById('forgot-form').classList.toggle('hidden',   tab !== 'forgot');
+  document.getElementById('reset-form').classList.toggle('hidden',    tab !== 'reset');
 }
 
 // ================================================================
@@ -1422,7 +1517,8 @@ async function renderUsuarios() {
       <div class="list-actions" style="flex-direction:column;gap:6px">
         ${isMe
           ? `<button class="icon-btn" onclick="openAlterarSenha()" title="Alterar senha">🔑</button>`
-          : `<button class="icon-btn red" onclick="deleteUsuario(${u.id}, '${u.nome.replace(/'/g, "\\'")}')">🗑️</button>`
+          : `<button class="icon-btn" onclick="resetarSenha(${u.id}, '${esc(u.nome)}')" title="Gerar senha temporária">🔄</button>
+             <button class="icon-btn red" onclick="deleteUsuario(${u.id}, '${esc(u.nome)}')">🗑️</button>`
         }
       </div>
     </div>`;
@@ -1432,20 +1528,22 @@ async function renderUsuarios() {
 function openAddUsuario() {
   document.getElementById('usr-nome').value = '';
   document.getElementById('usr-user').value = '';
+  document.getElementById('usr-email').value = '';
   document.getElementById('usr-pass').value = '';
   document.getElementById('usr-error').classList.add('hidden');
   openModal('modal-usuario');
 }
 
 async function saveUsuario() {
-  const nome = document.getElementById('usr-nome').value.trim();
+  const nome    = document.getElementById('usr-nome').value.trim();
   const usuario = document.getElementById('usr-user').value.trim().replace(/\s+/g, '');
-  const senha = document.getElementById('usr-pass').value;
-  const errEl = document.getElementById('usr-error');
+  const email   = document.getElementById('usr-email').value.trim();
+  const senha   = document.getElementById('usr-pass').value;
+  const errEl   = document.getElementById('usr-error');
   if (!nome || !usuario || !senha) { errEl.textContent = 'Preencha todos os campos.'; errEl.classList.remove('hidden'); return; }
   if (senha.length < 4) { errEl.textContent = 'Senha mínima de 4 caracteres.'; errEl.classList.remove('hidden'); return; }
   try {
-    await api('POST', '/usuarios', { nome, usuario, senha });
+    await api('POST', '/usuarios', { nome, usuario, senha, email: email || undefined });
     closeModal('modal-usuario');
     toast('Usuário criado!');
     renderUsuarios();
@@ -1459,6 +1557,22 @@ async function deleteUsuario(id, nome) {
     toast('Usuário removido.');
     renderUsuarios();
   } catch (e) { toast(e.message); }
+}
+
+async function resetarSenha(id, nome) {
+  if (!await confirmDialog('Resetar Senha', `Gerar uma senha temporária para "${nome}"?\nEla precisará trocar após o login.`)) return;
+  try {
+    const data = await api('POST', `/usuarios/${id}/reset-senha`);
+    document.getElementById('temp-nome-usuario').textContent = data.nome;
+    document.getElementById('temp-login-usuario').textContent = data.usuario;
+    document.getElementById('temp-senha-valor').textContent = data.senhaTemproraria;
+    openModal('modal-senha-temp');
+  } catch (e) { toast(e.message); }
+}
+
+function copiarSenhaTemp() {
+  const senha = document.getElementById('temp-senha-valor').textContent;
+  navigator.clipboard.writeText(senha).then(() => toast('Senha copiada! 📋')).catch(() => toast('Senha: ' + senha));
 }
 
 function openAlterarSenha() {
@@ -1495,6 +1609,14 @@ async function saveAlterarSenha() {
 // INIT
 // ================================================================
 (function init() {
+  // Verifica se há token de reset na URL (?reset=xxxx)
+  const resetToken = new URLSearchParams(window.location.search).get('reset');
+  if (resetToken) {
+    document.getElementById('login-screen').style.display = 'flex';
+    showLoginTab('reset');
+    return;
+  }
+
   const storedUser = localStorage.getItem('sucata_user');
   if (_token && storedUser) {
     try {

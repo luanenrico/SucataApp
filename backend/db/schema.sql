@@ -66,6 +66,11 @@ CREATE TABLE IF NOT EXISTS vendas (
   criado_em       TIMESTAMPTZ   NOT NULL DEFAULT NOW()
 );
 
+-- Colunas adicionadas após v1 (seguras para rodar em banco existente)
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS email             VARCHAR(150);
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS reset_token       VARCHAR(64);
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS reset_expires     TIMESTAMPTZ;
+
 -- Índices para performance
 CREATE INDEX IF NOT EXISTS idx_vendas_data         ON vendas(data);
 CREATE INDEX IF NOT EXISTS idx_vendas_material     ON vendas(codigo_material);
