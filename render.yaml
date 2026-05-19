@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: sucataapp
+    runtime: node
+    buildCommand: npm install
+    startCommand: node backend/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sucataapp-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+
+databases:
+  - name: sucataapp-db
+    databaseName: sucataapp
+    user: sucataapp
