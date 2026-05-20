@@ -39,7 +39,7 @@ router.post('/register', authLimiter, async (req, res) => {
     const hash = await bcrypt.hash(senha, 10);
     const { rows } = await db.query(
       'INSERT INTO usuarios (nome, usuario, senha_hash, email) VALUES ($1, $2, $3, $4) RETURNING id, nome, usuario, criado_em',
-      [nome.trim(), usuario.trim().toLowerCase(), hash, email?.trim().toLowerCase() || null]
+      [nome.trim(), usuario.trim(), hash, email?.trim().toLowerCase() || null]
     );
     const user  = rows[0];
     const token = jwt.sign(
@@ -61,7 +61,7 @@ router.post('/login', authLimiter, async (req, res) => {
     return res.status(400).json({ erro: 'Preencha usuário e senha.' });
 
   try {
-    const { rows } = await db.query('SELECT * FROM usuarios WHERE usuario = $1', [usuario.trim().toLowerCase()]);
+    const { rows } = await db.query('SELECT * FROM usuarios WHERE usuario = $1', [usuario.trim()]);
     // Sempre compara o hash para evitar timing attacks (não revela se usuário existe)
     const hash = rows[0]?.senha_hash || '$2a$10$invalidhashxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
     const ok   = await bcrypt.compare(senha, hash);
