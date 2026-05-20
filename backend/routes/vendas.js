@@ -40,6 +40,25 @@ router.get('/resumo', auth, async (req, res) => {
   res.json(rows);
 });
 
+// Helper: verifica saldo do lote
+async function verificaSaldoLote(codigo_lote, peso_vendido, excluirVendaId = null) {
+  if (!codigo_lote) return null; // sem lote, sem verificação
+  const { rows } = await db.query(`
+    SELECT
+      l.peso_comprado,
+      COALESCE(SUM(v.peso_vendido), 0) AS peso_vendido_total
+    FROM lotes l
+    LEFT JOIN vendas v ON v.codigo_lote = l.codigo
+      ${excluirVendaId ? 'AND v.id != $2' : ''}
+    WHERE l.codigo = $1
+    GROUP BY l.peso_comprado
+  `, excluirVendaId ? [codigo_lote, excluirVendaId] : [codigo_lote]);
+
+  if (!rows.length) return null;
+  const saldo = Number(rows[0].peso_comprado) - Number(rows[0].peso_vendido_total);
+  return saldo;
+}
+
 // POST /api/vendas
 router.post('/', auth, async (req, res) => {
   const { numero_venda, data, codigo_material, nome_material, codigo_lote,
@@ -51,6 +70,15 @@ router.post('/', auth, async (req, res) => {
   if (pagamento && !PAGAMENTOS_VALIDOS.includes(pagamento))
     return res.status(400).json({ erro: 'Método de pagamento inválido.' });
   try {
+    // Valida estoque do lote
+    if (codigo_lote) {
+      const saldo = await verificaSaldoLote(codigo_lote.trim().toUpperCase(), Number(peso_vendido));
+      if (saldo !== null && Number(peso_vendido) > saldo) {
+        return res.status(400).json({
+          erro: `Estoque insuficiente. Saldo disponível no lote: ${saldo.toFixed(2)} kg.`
+        });
+      }
+    }
     const { rows } = await db.query(
       `INSERT INTO vendas (numero_venda, data, codigo_material, nome_material, codigo_lote,
         peso_vendido, valor_venda_kg, custo_kg, pagamento, obs, registrado_por)
@@ -77,6 +105,15 @@ router.put('/:id', auth, async (req, res) => {
   if (pagamento && !PAGAMENTOS_VALIDOS.includes(pagamento))
     return res.status(400).json({ erro: 'Método de pagamento inválido.' });
   try {
+    // Valida estoque do lote (excluindo a própria venda sendo editada)
+    if (codigo_lote) {
+      const saldo = await verificaSaldoLote(codigo_lote.trim().toUpperCase(), Number(peso_vendido), req.params.id);
+      if (saldo !== null && Number(peso_vendido) > saldo) {
+        return res.status(400).json({
+          erro: `Estoque insuficiente. Saldo disponível no lote: ${saldo.toFixed(2)} kg.`
+        });
+      }
+    }
     const { rows } = await db.query(
       `UPDATE vendas SET numero_venda=$1, data=$2, codigo_material=$3, nome_material=$4,
         codigo_lote=$5, peso_vendido=$6, valor_venda_kg=$7, custo_kg=$8,

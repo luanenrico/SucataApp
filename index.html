@@ -1081,7 +1081,7 @@ async function renderDashboard() {
 // MATERIAIS
 // ================================================================
 async function renderMateriais() {
-  _materiais = await api('GET', '/materiais');
+  try { _materiais = await api('GET', '/materiais'); } catch (e) { toast('Erro ao carregar materiais.'); return; }
   const el = document.getElementById('materiais-list');
   if (!_materiais.length) {
     el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚙️</div><div class="empty-title">Nenhum material cadastrado</div><div class="empty-sub">Toque em + para adicionar</div></div>`;
@@ -1099,8 +1099,8 @@ async function renderMateriais() {
         <div class="list-value" style="font-size:14px">${fmt(m.preco_venda)}/kg</div>
         <div class="list-sub" style="margin-bottom:6px">venda</div>
         <div class="list-actions">
-          <button class="icon-btn" onclick="editMaterial(${m.id})">✏️</button>
-          <button class="icon-btn red" onclick="deleteMaterial(${m.id})">🗑️</button>
+          <button class="icon-btn" onclick="editMaterial('${m.id}')">✏️</button>
+          <button class="icon-btn red" onclick="deleteMaterial('${m.id}')">🗑️</button>
         </div>
       </div>
     </div>`).join('');
@@ -1177,6 +1177,13 @@ async function renderLotes() {
   }
   el.innerHTML = [..._lotes].sort((a, b) => new Date(b.data_compra) - new Date(a.data_compra)).map(l => {
     const dataFmt = l.data_compra ? new Date(l.data_compra + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
+    const saldo = Number(l.peso_saldo ?? l.peso_comprado);
+    const pct = Number(l.pct_vendido ?? 0);
+    const pctRestante = 100 - pct;
+    let estoqueColor, estoqueLabel;
+    if (saldo <= 0)          { estoqueColor = '#dc2626'; estoqueLabel = 'Esgotado'; }
+    else if (pctRestante < 20) { estoqueColor = '#f59e0b'; estoqueLabel = 'Baixo'; }
+    else                     { estoqueColor = '#16a34a'; estoqueLabel = 'Disponível'; }
     return `
     <div class="list-item">
       <div class="list-icon">📦</div>
@@ -1184,13 +1191,22 @@ async function renderLotes() {
         <div class="list-title">${esc(l.codigo)}</div>
         <div class="list-sub">${esc(l.nome_material || l.codigo_material)} · ${dataFmt}</div>
         <div class="list-sub">${fmtKg(l.peso_comprado)} comprados</div>
+        <div style="margin-top:6px">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+            <span style="font-size:11px;font-weight:600;color:${estoqueColor}">${estoqueLabel}</span>
+            <span style="font-size:11px;color:var(--text-muted)">${fmtKg(Math.max(0, saldo))} restantes</span>
+          </div>
+          <div style="height:5px;background:#e5e7eb;border-radius:3px;overflow:hidden;width:140px">
+            <div style="height:100%;width:${Math.min(100, Math.max(0, pctRestante))}%;background:${estoqueColor};border-radius:3px;transition:width .3s"></div>
+          </div>
+        </div>
       </div>
       <div class="list-right">
         <div class="list-value" style="font-size:13px">${fmt(l.custo_por_kg)}/kg</div>
         <div class="list-sub">custo/kg</div>
         <div class="list-actions" style="margin-top:6px;justify-content:flex-end">
-          <button class="icon-btn" onclick="editLote(${l.id})">✏️</button>
-          <button class="icon-btn red" onclick="deleteLote(${l.id})">🗑️</button>
+          <button class="icon-btn" onclick="editLote('${l.id}')">✏️</button>
+          <button class="icon-btn red" onclick="deleteLote('${l.id}')">🗑️</button>
         </div>
       </div>
     </div>`;
@@ -1329,8 +1345,8 @@ async function renderVendas() {
         <div class="list-value">${fmt(v.receita_total)}</div>
         <span class="${mg >= 0 ? 'badge badge-green' : 'badge badge-red'}" style="margin-top:4px;display:inline-flex">${fmtPct(v.margem)}</span>
         <div class="list-actions" style="margin-top:6px;justify-content:flex-end">
-          <button class="icon-btn" onclick="editVenda(${v.id})">✏️</button>
-          <button class="icon-btn red" onclick="deleteVenda(${v.id})">🗑️</button>
+          <button class="icon-btn" onclick="editVenda('${v.id}')">✏️</button>
+          <button class="icon-btn red" onclick="deleteVenda('${v.id}')">🗑️</button>
         </div>
       </div>
     </div>`;
@@ -1346,7 +1362,9 @@ function onVendaMaterialChange() {
     '<option value="">Sem lote — usar custo padrão</option>' +
     lotesFiltrados.map(l => {
       const d = l.data_compra ? new Date(l.data_compra + 'T12:00:00').toLocaleDateString('pt-BR') : '';
-      return `<option value="${l.codigo}">${l.codigo} — ${fmt(l.custo_por_kg)}/kg (${d})</option>`;
+      const saldo = Number(l.peso_saldo ?? l.peso_comprado);
+      const saldoTxt = saldo <= 0 ? '⛔ Esgotado' : `${fmtKg(Math.max(0, saldo))} disp.`;
+      return `<option value="${l.codigo}" ${saldo <= 0 ? 'disabled' : ''}>${l.codigo} — ${fmt(l.custo_por_kg)}/kg · ${saldoTxt} (${d})</option>`;
     }).join('');
   if (codigo) {
     const mat = _materiais.find(m => m.codigo === codigo);
@@ -1517,8 +1535,8 @@ async function renderUsuarios() {
       <div class="list-actions" style="flex-direction:column;gap:6px">
         ${isMe
           ? `<button class="icon-btn" onclick="openAlterarSenha()" title="Alterar senha">🔑</button>`
-          : `<button class="icon-btn" onclick="resetarSenha(${u.id}, '${esc(u.nome)}')" title="Gerar senha temporária">🔄</button>
-             <button class="icon-btn red" onclick="deleteUsuario(${u.id}, '${esc(u.nome)}')">🗑️</button>`
+          : `<button class="icon-btn" onclick="resetarSenha('${u.id}', '${esc(u.nome)}')" title="Gerar senha temporária">🔄</button>
+             <button class="icon-btn red" onclick="deleteUsuario('${u.id}', '${esc(u.nome)}')">🗑️</button>`
         }
       </div>
     </div>`;

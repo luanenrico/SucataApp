@@ -6,12 +6,23 @@ function num(v, min = 0) { const n = Number(v); return !isNaN(n) && isFinite(n) 
 function str(v, mn, mx)  { return typeof v === 'string' && v.trim().length >= mn && v.trim().length <= mx; }
 function isDate(v)        { return typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v); }
 
-// GET /api/lotes
+// GET /api/lotes — inclui saldo de estoque
 router.get('/', auth, async (req, res) => {
   const { rows } = await db.query(`
-    SELECT l.*, m.tipo AS nome_material
+    SELECT
+      l.*,
+      m.tipo AS nome_material,
+      COALESCE(SUM(v.peso_vendido), 0)                        AS peso_vendido_total,
+      l.peso_comprado - COALESCE(SUM(v.peso_vendido), 0)      AS peso_saldo,
+      ROUND(
+        CASE WHEN l.peso_comprado > 0
+        THEN (COALESCE(SUM(v.peso_vendido), 0) / l.peso_comprado) * 100
+        ELSE 0 END
+      , 1) AS pct_vendido
     FROM lotes l
     LEFT JOIN materiais m ON m.codigo = l.codigo_material
+    LEFT JOIN vendas v ON v.codigo_lote = l.codigo
+    GROUP BY l.id, m.tipo
     ORDER BY l.data_compra DESC
   `);
   res.json(rows);
