@@ -75,6 +75,9 @@ ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS reset_expires     TIMESTAMPTZ;
 -- v2: isolamento por usuário — cada conta vê apenas seus dados
 -- ============================================================
 
+-- Campo ativo para bloquear usuários inadimplentes
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS ativo BOOLEAN NOT NULL DEFAULT true;
+
 -- Adicionar usuario_id nas tabelas de negócio
 ALTER TABLE materiais ADD COLUMN IF NOT EXISTS usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE;
 ALTER TABLE lotes     ADD COLUMN IF NOT EXISTS usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE;

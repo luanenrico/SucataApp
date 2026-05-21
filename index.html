@@ -1524,18 +1524,24 @@ async function renderUsuarios() {
     const initials = u.nome.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
     const isMe = currentUser && u.id == currentUser.id;
     const dataCriacao = new Date(u.criado_em).toLocaleDateString('pt-BR');
+    const ativo = u.ativo !== false;
     return `
-    <div class="list-item">
-      <div class="user-avatar">${initials}</div>
+    <div class="list-item" style="opacity:${ativo ? '1' : '0.55'}">
+      <div class="user-avatar" style="background:${ativo ? '' : '#9ca3af'}">${initials}</div>
       <div class="list-body">
-        <div class="list-title">${esc(u.nome)} ${isMe ? '<span class="badge badge-green" style="font-size:10px">Você</span>' : ''}</div>
+        <div class="list-title">
+          ${esc(u.nome)}
+          ${isMe ? '<span class="badge badge-green" style="font-size:10px">Você</span>' : ''}
+          ${!ativo ? '<span style="font-size:10px;font-weight:700;color:#dc2626;background:#fee2e2;padding:2px 6px;border-radius:99px">INATIVO</span>' : ''}
+        </div>
         <div class="list-sub">@${esc(u.usuario)}</div>
         <div class="list-sub">Desde ${dataCriacao}</div>
       </div>
       <div class="list-actions" style="flex-direction:column;gap:6px">
         ${isMe
           ? `<button class="icon-btn" onclick="openAlterarSenha()" title="Alterar senha">🔑</button>`
-          : `<button class="icon-btn" onclick="resetarSenha('${u.id}', '${esc(u.nome)}')" title="Gerar senha temporária">🔄</button>
+          : `<button class="icon-btn" onclick="toggleAtivo('${u.id}', ${ativo})" title="${ativo ? 'Desativar acesso' : 'Ativar acesso'}" style="font-size:18px">${ativo ? '🔓' : '🔒'}</button>
+             <button class="icon-btn" onclick="resetarSenha('${u.id}', '${esc(u.nome)}')" title="Gerar senha temporária">🔄</button>
              <button class="icon-btn red" onclick="deleteUsuario('${u.id}', '${esc(u.nome)}')">🗑️</button>`
         }
       </div>
@@ -1566,6 +1572,19 @@ async function saveUsuario() {
     toast('Usuário criado!');
     renderUsuarios();
   } catch (e) { errEl.textContent = e.message; errEl.classList.remove('hidden'); }
+}
+
+async function toggleAtivo(id, ativoAtual) {
+  const acao = ativoAtual ? 'Desativar' : 'Ativar';
+  const msg  = ativoAtual
+    ? 'Desativar bloqueará o acesso deste usuário ao app.'
+    : 'Ativar permitirá que este usuário acesse o app novamente.';
+  if (!await confirmDialog(acao + ' Usuário', msg)) return;
+  try {
+    await api('PATCH', `/usuarios/${id}/ativo`, { ativo: !ativoAtual });
+    toast(ativoAtual ? 'Usuário desativado.' : 'Usuário ativado!');
+    renderUsuarios();
+  } catch (e) { toast(e.message); }
 }
 
 async function deleteUsuario(id, nome) {

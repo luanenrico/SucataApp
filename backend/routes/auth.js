@@ -67,6 +67,8 @@ router.post('/login', authLimiter, async (req, res) => {
     const ok   = await bcrypt.compare(senha, hash);
     if (!rows.length || !ok)
       return res.status(401).json({ erro: 'Usuário ou senha inválidos.' });
+    if (!rows[0].ativo)
+      return res.status(403).json({ erro: 'Conta inativa. Entre em contato com o administrador.' });
 
     const user  = rows[0];
     const token = jwt.sign(

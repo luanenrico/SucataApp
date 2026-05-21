@@ -5,7 +5,7 @@ const auth   = require('../middleware/auth');
 
 // GET /api/usuarios
 router.get('/', auth, async (req, res) => {
-  const { rows } = await db.query('SELECT id, nome, usuario, email, criado_em FROM usuarios ORDER BY criado_em');
+  const { rows } = await db.query('SELECT id, nome, usuario, email, ativo, criado_em FROM usuarios ORDER BY criado_em');
   res.json(rows);
 });
 
@@ -70,6 +70,24 @@ router.post('/:id/reset-senha', auth, async (req, res) => {
     const hash = await bcrypt.hash(temp, 10);
     await db.query('UPDATE usuarios SET senha_hash = $1 WHERE id = $2', [hash, req.params.id]);
     res.json({ senhaTemproraria: temp, usuario: rows[0].usuario, nome: rows[0].nome });
+  } catch (e) {
+    res.status(500).json({ erro: 'Erro interno.' });
+  }
+});
+
+// PATCH /api/usuarios/:id/ativo — ativa ou desativa um usuário
+router.patch('/:id/ativo', auth, async (req, res) => {
+  if (String(req.user.id) === String(req.params.id))
+    return res.status(400).json({ erro: 'Não é possível desativar seu próprio usuário.' });
+  const { ativo } = req.body;
+  if (typeof ativo !== 'boolean') return res.status(400).json({ erro: 'Campo ativo deve ser true ou false.' });
+  try {
+    const { rows } = await db.query(
+      'UPDATE usuarios SET ativo = $1 WHERE id = $2 RETURNING id, nome, usuario, email, ativo, criado_em',
+      [ativo, req.params.id]
+    );
+    if (!rows.length) return res.status(404).json({ erro: 'Usuário não encontrado.' });
+    res.json(rows[0]);
   } catch (e) {
     res.status(500).json({ erro: 'Erro interno.' });
   }
