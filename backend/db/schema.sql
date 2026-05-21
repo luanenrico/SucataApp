@@ -75,3 +75,29 @@ ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS reset_expires     TIMESTAMPTZ;
 CREATE INDEX IF NOT EXISTS idx_vendas_data         ON vendas(data);
 CREATE INDEX IF NOT EXISTS idx_vendas_material     ON vendas(codigo_material);
 CREATE INDEX IF NOT EXISTS idx_lotes_material      ON lotes(codigo_material);
+
+-- ============================================================
+-- v2: isolamento por usuário — cada conta vê apenas seus dados
+-- ============================================================
+
+-- Adicionar usuario_id nas tabelas de negócio
+ALTER TABLE materiais ADD COLUMN IF NOT EXISTS usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE;
+ALTER TABLE lotes     ADD COLUMN IF NOT EXISTS usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE;
+ALTER TABLE vendas    ADD COLUMN IF NOT EXISTS usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE;
+
+-- Remover FKs que referenciam colunas que deixarão de ser globalmente únicas
+ALTER TABLE lotes  DROP CONSTRAINT IF EXISTS lotes_codigo_material_fkey;
+ALTER TABLE vendas DROP CONSTRAINT IF EXISTS vendas_codigo_lote_fkey;
+
+-- Remover unique constraints de coluna única
+ALTER TABLE materiais DROP CONSTRAINT IF EXISTS materiais_codigo_key;
+ALTER TABLE lotes     DROP CONSTRAINT IF EXISTS lotes_codigo_key;
+
+-- Recriar como unique composto (codigo + usuario_id)
+ALTER TABLE materiais ADD CONSTRAINT IF NOT EXISTS materiais_codigo_usuario_uq UNIQUE (codigo, usuario_id);
+ALTER TABLE lotes     ADD CONSTRAINT IF NOT EXISTS lotes_codigo_usuario_uq     UNIQUE (codigo, usuario_id);
+
+-- Índices de performance para filtros por usuário
+CREATE INDEX IF NOT EXISTS idx_materiais_usuario ON materiais(usuario_id);
+CREATE INDEX IF NOT EXISTS idx_lotes_usuario     ON lotes(usuario_id);
+CREATE INDEX IF NOT EXISTS idx_vendas_usuario    ON vendas(usuario_id);

@@ -12,10 +12,10 @@ const PAGAMENTOS_VALIDOS = ['Dinheiro','PIX','Cartão de Débito','Cartão de Cr
 router.get('/', auth, async (req, res) => {
   const mes = parseInt(req.query.mes);
   const ano = parseInt(req.query.ano);
-  let sql = 'SELECT * FROM vendas';
-  const params = [];
+  let sql = 'SELECT * FROM vendas WHERE usuario_id = $1';
+  const params = [req.user.id];
   if (!isNaN(mes) && !isNaN(ano) && mes >= 1 && mes <= 12 && ano >= 2000 && ano <= 2100) {
-    sql += ' WHERE EXTRACT(MONTH FROM data) = $1 AND EXTRACT(YEAR FROM data) = $2';
+    sql += ' AND EXTRACT(MONTH FROM data) = $2 AND EXTRACT(YEAR FROM data) = $3';
     params.push(mes, ano);
   }
   sql += ' ORDER BY data DESC, numero_venda';
@@ -34,25 +34,25 @@ router.get('/resumo', auth, async (req, res) => {
       COALESCE(SUM(peso_vendido), 0)  AS peso,
       COUNT(*)                        AS qtd_vendas
     FROM vendas
-    WHERE EXTRACT(YEAR FROM data) = $1
+    WHERE EXTRACT(YEAR FROM data) = $1 AND usuario_id = $2
     GROUP BY mes ORDER BY mes
-  `, [ano]);
+  `, [ano, req.user.id]);
   res.json(rows);
 });
 
-// Helper: verifica saldo do lote
-async function verificaSaldoLote(codigo_lote, peso_vendido, excluirVendaId = null) {
-  if (!codigo_lote) return null; // sem lote, sem verificação
+// Helper: verifica saldo do lote do usuário
+async function verificaSaldoLote(codigo_lote, usuario_id, excluirVendaId = null) {
+  if (!codigo_lote) return null;
   const { rows } = await db.query(`
     SELECT
       l.peso_comprado,
       COALESCE(SUM(v.peso_vendido), 0) AS peso_vendido_total
     FROM lotes l
-    LEFT JOIN vendas v ON v.codigo_lote = l.codigo
-      ${excluirVendaId ? 'AND v.id != $2' : ''}
-    WHERE l.codigo = $1
+    LEFT JOIN vendas v ON v.codigo_lote = l.codigo AND v.usuario_id = l.usuario_id
+      ${excluirVendaId ? 'AND v.id != $3' : ''}
+    WHERE l.codigo = $1 AND l.usuario_id = $2
     GROUP BY l.peso_comprado
-  `, excluirVendaId ? [codigo_lote, excluirVendaId] : [codigo_lote]);
+  `, excluirVendaId ? [codigo_lote, usuario_id, excluirVendaId] : [codigo_lote, usuario_id]);
 
   if (!rows.length) return null;
   const saldo = Number(rows[0].peso_comprado) - Number(rows[0].peso_vendido_total);
@@ -70,9 +70,8 @@ router.post('/', auth, async (req, res) => {
   if (pagamento && !PAGAMENTOS_VALIDOS.includes(pagamento))
     return res.status(400).json({ erro: 'Método de pagamento inválido.' });
   try {
-    // Valida estoque do lote
     if (codigo_lote) {
-      const saldo = await verificaSaldoLote(codigo_lote.trim().toUpperCase(), Number(peso_vendido));
+      const saldo = await verificaSaldoLote(codigo_lote.trim().toUpperCase(), req.user.id);
       if (saldo !== null && Number(peso_vendido) > saldo) {
         return res.status(400).json({
           erro: `Estoque insuficiente. Saldo disponível no lote: ${saldo.toFixed(2)} kg.`
@@ -81,12 +80,12 @@ router.post('/', auth, async (req, res) => {
     }
     const { rows } = await db.query(
       `INSERT INTO vendas (numero_venda, data, codigo_material, nome_material, codigo_lote,
-        peso_vendido, valor_venda_kg, custo_kg, pagamento, obs, registrado_por)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+        peso_vendido, valor_venda_kg, custo_kg, pagamento, obs, registrado_por, usuario_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
       [numero_venda || null, data, codigo_material.trim().toUpperCase(),
        nome_material?.trim() || null, codigo_lote?.trim().toUpperCase() || null,
        Number(peso_vendido), Number(valor_venda_kg), Number(custo_kg) || 0,
-       pagamento || null, obs?.trim() || null, req.user.nome]
+       pagamento || null, obs?.trim() || null, req.user.nome, req.user.id]
     );
     res.status(201).json(rows[0]);
   } catch (e) {
@@ -105,9 +104,8 @@ router.put('/:id', auth, async (req, res) => {
   if (pagamento && !PAGAMENTOS_VALIDOS.includes(pagamento))
     return res.status(400).json({ erro: 'Método de pagamento inválido.' });
   try {
-    // Valida estoque do lote (excluindo a própria venda sendo editada)
     if (codigo_lote) {
-      const saldo = await verificaSaldoLote(codigo_lote.trim().toUpperCase(), Number(peso_vendido), req.params.id);
+      const saldo = await verificaSaldoLote(codigo_lote.trim().toUpperCase(), req.user.id, req.params.id);
       if (saldo !== null && Number(peso_vendido) > saldo) {
         return res.status(400).json({
           erro: `Estoque insuficiente. Saldo disponível no lote: ${saldo.toFixed(2)} kg.`
@@ -117,11 +115,11 @@ router.put('/:id', auth, async (req, res) => {
     const { rows } = await db.query(
       `UPDATE vendas SET numero_venda=$1, data=$2, codigo_material=$3, nome_material=$4,
         codigo_lote=$5, peso_vendido=$6, valor_venda_kg=$7, custo_kg=$8,
-        pagamento=$9, obs=$10 WHERE id=$11 RETURNING *`,
+        pagamento=$9, obs=$10 WHERE id=$11 AND usuario_id=$12 RETURNING *`,
       [numero_venda || null, data, codigo_material.trim().toUpperCase(),
        nome_material?.trim() || null, codigo_lote?.trim().toUpperCase() || null,
        Number(peso_vendido), Number(valor_venda_kg), Number(custo_kg) || 0,
-       pagamento || null, obs?.trim() || null, req.params.id]
+       pagamento || null, obs?.trim() || null, req.params.id, req.user.id]
     );
     if (!rows.length) return res.status(404).json({ erro: 'Venda não encontrada.' });
     res.json(rows[0]);
@@ -132,7 +130,7 @@ router.put('/:id', auth, async (req, res) => {
 
 // DELETE /api/vendas/:id
 router.delete('/:id', auth, async (req, res) => {
-  await db.query('DELETE FROM vendas WHERE id = $1', [req.params.id]);
+  await db.query('DELETE FROM vendas WHERE id = $1 AND usuario_id = $2', [req.params.id, req.user.id]);
   res.json({ mensagem: 'Venda removida.' });
 });
 

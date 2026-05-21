@@ -7,7 +7,10 @@ function str(v, mn, mx)  { return typeof v === 'string' && v.trim().length >= mn
 
 // GET /api/materiais
 router.get('/', auth, async (req, res) => {
-  const { rows } = await db.query('SELECT * FROM materiais ORDER BY tipo');
+  const { rows } = await db.query(
+    'SELECT * FROM materiais WHERE usuario_id = $1 ORDER BY tipo',
+    [req.user.id]
+  );
   res.json(rows);
 });
 
@@ -20,8 +23,8 @@ router.post('/', auth, async (req, res) => {
   if (!num(custo_padrao))    return res.status(400).json({ erro: 'Custo padrão inválido.' });
   try {
     const { rows } = await db.query(
-      'INSERT INTO materiais (codigo, tipo, preco_venda, custo_padrao) VALUES ($1, $2, $3, $4) RETURNING *',
-      [codigo.trim().toUpperCase(), tipo.trim(), Number(preco_venda), Number(custo_padrao)]
+      'INSERT INTO materiais (codigo, tipo, preco_venda, custo_padrao, usuario_id) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [codigo.trim().toUpperCase(), tipo.trim(), Number(preco_venda), Number(custo_padrao), req.user.id]
     );
     res.status(201).json(rows[0]);
   } catch (e) {
@@ -39,8 +42,8 @@ router.put('/:id', auth, async (req, res) => {
   if (!num(custo_padrao))    return res.status(400).json({ erro: 'Custo padrão inválido.' });
   try {
     const { rows } = await db.query(
-      'UPDATE materiais SET codigo=$1, tipo=$2, preco_venda=$3, custo_padrao=$4 WHERE id=$5 RETURNING *',
-      [codigo.trim().toUpperCase(), tipo.trim(), Number(preco_venda), Number(custo_padrao), req.params.id]
+      'UPDATE materiais SET codigo=$1, tipo=$2, preco_venda=$3, custo_padrao=$4 WHERE id=$5 AND usuario_id=$6 RETURNING *',
+      [codigo.trim().toUpperCase(), tipo.trim(), Number(preco_venda), Number(custo_padrao), req.params.id, req.user.id]
     );
     if (!rows.length) return res.status(404).json({ erro: 'Material não encontrado.' });
     res.json(rows[0]);
@@ -53,7 +56,7 @@ router.put('/:id', auth, async (req, res) => {
 // DELETE /api/materiais/:id
 router.delete('/:id', auth, async (req, res) => {
   try {
-    await db.query('DELETE FROM materiais WHERE id = $1', [req.params.id]);
+    await db.query('DELETE FROM materiais WHERE id = $1 AND usuario_id = $2', [req.params.id, req.user.id]);
     res.json({ mensagem: 'Material excluído.' });
   } catch (e) {
     if (e.code === '23503') return res.status(409).json({ erro: 'Material possui lotes ou vendas vinculados.' });
