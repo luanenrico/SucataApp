@@ -71,11 +71,6 @@ ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS email             VARCHAR(150);
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS reset_token       VARCHAR(64);
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS reset_expires     TIMESTAMPTZ;
 
--- Índices para performance
-CREATE INDEX IF NOT EXISTS idx_vendas_data         ON vendas(data);
-CREATE INDEX IF NOT EXISTS idx_vendas_material     ON vendas(codigo_material);
-CREATE INDEX IF NOT EXISTS idx_lotes_material      ON lotes(codigo_material);
-
 -- ============================================================
 -- v2: isolamento por usuário — cada conta vê apenas seus dados
 -- ============================================================
@@ -89,15 +84,24 @@ ALTER TABLE vendas    ADD COLUMN IF NOT EXISTS usuario_id UUID REFERENCES usuari
 ALTER TABLE lotes  DROP CONSTRAINT IF EXISTS lotes_codigo_material_fkey;
 ALTER TABLE vendas DROP CONSTRAINT IF EXISTS vendas_codigo_lote_fkey;
 
--- Remover unique constraints de coluna única
+-- Remover unique constraints de coluna única (agora unique por usuário)
 ALTER TABLE materiais DROP CONSTRAINT IF EXISTS materiais_codigo_key;
 ALTER TABLE lotes     DROP CONSTRAINT IF EXISTS lotes_codigo_key;
 
 -- Recriar como unique composto (codigo + usuario_id)
-ALTER TABLE materiais ADD CONSTRAINT IF NOT EXISTS materiais_codigo_usuario_uq UNIQUE (codigo, usuario_id);
-ALTER TABLE lotes     ADD CONSTRAINT IF NOT EXISTS lotes_codigo_usuario_uq     UNIQUE (codigo, usuario_id);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'materiais_codigo_usuario_uq') THEN
+    ALTER TABLE materiais ADD CONSTRAINT materiais_codigo_usuario_uq UNIQUE (codigo, usuario_id);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'lotes_codigo_usuario_uq') THEN
+    ALTER TABLE lotes ADD CONSTRAINT lotes_codigo_usuario_uq UNIQUE (codigo, usuario_id);
+  END IF;
+END $$;
 
--- Índices de performance para filtros por usuário
+-- Índices para performance
+CREATE INDEX IF NOT EXISTS idx_vendas_data       ON vendas(data);
+CREATE INDEX IF NOT EXISTS idx_vendas_material   ON vendas(codigo_material);
+CREATE INDEX IF NOT EXISTS idx_lotes_material    ON lotes(codigo_material);
 CREATE INDEX IF NOT EXISTS idx_materiais_usuario ON materiais(usuario_id);
 CREATE INDEX IF NOT EXISTS idx_lotes_usuario     ON lotes(usuario_id);
 CREATE INDEX IF NOT EXISTS idx_vendas_usuario    ON vendas(usuario_id);

@@ -5,7 +5,7 @@ const auth   = require('../middleware/auth');
 function num(v, min = 0) { const n = Number(v); return !isNaN(n) && isFinite(n) && n >= min; }
 function str(v, mn, mx)  { return typeof v === 'string' && v.trim().length >= mn && v.trim().length <= mx; }
 
-// GET /api/materiais
+// GET /api/materiais — só os do usuário logado
 router.get('/', auth, async (req, res) => {
   const { rows } = await db.query(
     'SELECT * FROM materiais WHERE usuario_id = $1 ORDER BY tipo',

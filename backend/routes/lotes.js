@@ -6,7 +6,7 @@ function num(v, min = 0) { const n = Number(v); return !isNaN(n) && isFinite(n) 
 function str(v, mn, mx)  { return typeof v === 'string' && v.trim().length >= mn && v.trim().length <= mx; }
 function isDate(v)        { return typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v); }
 
-// GET /api/lotes — inclui saldo de estoque
+// GET /api/lotes — inclui saldo de estoque, só do usuário logado
 router.get('/', auth, async (req, res) => {
   const { rows } = await db.query(`
     SELECT

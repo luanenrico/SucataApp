@@ -34,13 +34,13 @@ router.get('/resumo', auth, async (req, res) => {
       COALESCE(SUM(peso_vendido), 0)  AS peso,
       COUNT(*)                        AS qtd_vendas
     FROM vendas
-    WHERE EXTRACT(YEAR FROM data) = $1 AND usuario_id = $2
+    WHERE usuario_id = $1 AND EXTRACT(YEAR FROM data) = $2
     GROUP BY mes ORDER BY mes
-  `, [ano, req.user.id]);
+  `, [req.user.id, ano]);
   res.json(rows);
 });
 
-// Helper: verifica saldo do lote do usuário
+// Helper: verifica saldo do lote (isolado por usuário)
 async function verificaSaldoLote(codigo_lote, usuario_id, excluirVendaId = null) {
   if (!codigo_lote) return null;
   const { rows } = await db.query(`
