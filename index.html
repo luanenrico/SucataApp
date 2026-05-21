@@ -452,16 +452,13 @@
           style="flex:1;padding:8px;border-radius:10px;border:none;font-weight:700;font-size:13px;cursor:pointer;background:#e5e7eb;color:var(--text-muted)">Anual</button>
       </div>
       <!-- Seletor mensal -->
-      <div class="month-selector" id="dash-sel-mensal">
-        <button class="month-btn" onclick="dashChangeMes(-1)">‹</button>
-        <div class="month-label" id="dash-mes-label">—</div>
-        <button class="month-btn" onclick="dashChangeMes(1)">›</button>
+      <div id="dash-sel-mensal" style="display:flex;gap:8px;padding:8px 16px">
+        <select id="dash-select-mes" class="form-input" style="flex:2" onchange="dashMes=parseInt(this.value);renderDashboard()"></select>
+        <select id="dash-select-ano-mensal" class="form-input" style="flex:1" onchange="dashAno=parseInt(this.value);renderDashboard()"></select>
       </div>
       <!-- Seletor anual -->
-      <div class="month-selector" id="dash-sel-anual" style="display:none">
-        <button class="month-btn" onclick="dashChangeAno(-1)">‹</button>
-        <div class="month-label" id="dash-ano-label">—</div>
-        <button class="month-btn" onclick="dashChangeAno(1)">›</button>
+      <div id="dash-sel-anual" style="display:none;padding:8px 16px">
+        <select id="dash-select-ano-anual" class="form-input" onchange="dashAno=parseInt(this.value);renderDashboard()"></select>
       </div>
       <div class="kpi-grid" id="dash-kpis"></div>
       <div class="card">
@@ -1024,23 +1021,36 @@ function setDashView(view) {
   renderDashboard();
 }
 
-function dashChangeMes(delta) {
-  dashMes += delta;
-  if (dashMes < 0) { dashMes = 11; dashAno--; }
-  if (dashMes > 11) { dashMes = 0; dashAno++; }
-  renderDashboard();
-}
+function preencheDashSelects() {
+  const anoAtual = new Date().getFullYear();
+  const anos = Array.from({length: 6}, (_, i) => anoAtual - 2 + i); // 2 anos atrás até 3 à frente
 
-function dashChangeAno(delta) {
-  dashAno += delta;
-  renderDashboard();
+  // Select de mês
+  const selMes = document.getElementById('dash-select-mes');
+  if (selMes && !selMes.options.length) {
+    MESES.forEach((m, i) => { const o = new Option(m, i); selMes.add(o); });
+  }
+
+  // Selects de ano (mensal e anual)
+  ['dash-select-ano-mensal', 'dash-select-ano-anual'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (sel && !sel.options.length) {
+      anos.forEach(a => sel.add(new Option(a, a)));
+    }
+  });
+
+  // Sincroniza valores
+  if (selMes) selMes.value = dashMes;
+  const sm = document.getElementById('dash-select-ano-mensal');
+  const sa = document.getElementById('dash-select-ano-anual');
+  if (sm) sm.value = dashAno;
+  if (sa) sa.value = dashAno;
 }
 
 async function renderDashboard() {
   const isAnual = dashView === 'anual';
 
-  document.getElementById('dash-mes-label').textContent = MESES[dashMes] + ' ' + dashAno;
-  document.getElementById('dash-ano-label').textContent = dashAno;
+  preencheDashSelects();
   document.getElementById('dash-ano-badge').textContent = dashAno;
   document.getElementById('dash-mes-badge').textContent = isAnual ? dashAno : MESES[dashMes];
   document.getElementById('dash-mat-title').textContent = isAnual ? 'Por material — ano todo' : 'Por material';
