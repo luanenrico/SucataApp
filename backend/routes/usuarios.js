@@ -3,14 +3,20 @@ const bcrypt = require('bcryptjs');
 const db     = require('../db');
 const auth   = require('../middleware/auth');
 
+// Middleware: só admin acessa rotas de gestão
+function soAdmin(req, res, next) {
+  if (!req.user.admin) return res.status(403).json({ erro: 'Acesso restrito ao administrador.' });
+  next();
+}
+
 // GET /api/usuarios
-router.get('/', auth, async (req, res) => {
-  const { rows } = await db.query('SELECT id, nome, usuario, email, ativo, criado_em FROM usuarios ORDER BY criado_em');
+router.get('/', auth, soAdmin, async (req, res) => {
+  const { rows } = await db.query('SELECT id, nome, usuario, email, ativo, admin, criado_em FROM usuarios ORDER BY criado_em');
   res.json(rows);
 });
 
 // POST /api/usuarios
-router.post('/', auth, async (req, res) => {
+router.post('/', auth, soAdmin, async (req, res) => {
   const { nome, usuario, senha, email } = req.body;
   if (!nome || !usuario || !senha) return res.status(400).json({ erro: 'Preencha todos os campos.' });
   if (senha.length < 4) return res.status(400).json({ erro: 'Senha mínima de 4 caracteres.' });
@@ -48,8 +54,8 @@ router.put('/:id/senha', auth, async (req, res) => {
   }
 });
 
-// POST /api/usuarios/:id/reset-senha  — gera senha temporária (qualquer usuário logado pode usar)
-router.post('/:id/reset-senha', auth, async (req, res) => {
+// POST /api/usuarios/:id/reset-senha  — gera senha temporária (só admin)
+router.post('/:id/reset-senha', auth, soAdmin, async (req, res) => {
   // Não pode resetar a própria senha por aqui (use /senha)
   if (String(req.user.id) === String(req.params.id))
     return res.status(400).json({ erro: 'Use "Alterar Senha" para trocar sua própria senha.' });
@@ -75,8 +81,8 @@ router.post('/:id/reset-senha', auth, async (req, res) => {
   }
 });
 
-// PATCH /api/usuarios/:id/ativo — ativa ou desativa um usuário
-router.patch('/:id/ativo', auth, async (req, res) => {
+// PATCH /api/usuarios/:id/ativo — ativa ou desativa um usuário (só admin)
+router.patch('/:id/ativo', auth, soAdmin, async (req, res) => {
   if (String(req.user.id) === String(req.params.id))
     return res.status(400).json({ erro: 'Não é possível desativar seu próprio usuário.' });
   const { ativo } = req.body;
@@ -93,8 +99,8 @@ router.patch('/:id/ativo', auth, async (req, res) => {
   }
 });
 
-// DELETE /api/usuarios/:id
-router.delete('/:id', auth, async (req, res) => {
+// DELETE /api/usuarios/:id (só admin)
+router.delete('/:id', auth, soAdmin, async (req, res) => {
   if (String(req.user.id) === String(req.params.id)) return res.status(400).json({ erro: 'Não é possível excluir seu próprio usuário.' });
   await db.query('DELETE FROM usuarios WHERE id = $1', [req.params.id]);
   res.json({ mensagem: 'Usuário removido.' });

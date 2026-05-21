@@ -36,18 +36,21 @@ router.post('/register', authLimiter, async (req, res) => {
   try {
     const existe = await db.query('SELECT id FROM usuarios WHERE usuario = $1', [usuario.trim()]);
     if (existe.rows.length) return res.status(409).json({ erro: 'Usuário já existe.' });
+    // Primeiro usuário cadastrado vira admin automaticamente
+    const temAdmin = await db.query('SELECT id FROM usuarios WHERE admin = true LIMIT 1');
+    const isAdmin  = temAdmin.rows.length === 0;
     const hash = await bcrypt.hash(senha, 10);
     const { rows } = await db.query(
-      'INSERT INTO usuarios (nome, usuario, senha_hash, email) VALUES ($1, $2, $3, $4) RETURNING id, nome, usuario, criado_em',
-      [nome.trim(), usuario.trim(), hash, email?.trim().toLowerCase() || null]
+      'INSERT INTO usuarios (nome, usuario, senha_hash, email, admin) VALUES ($1, $2, $3, $4, $5) RETURNING id, nome, usuario, admin, criado_em',
+      [nome.trim(), usuario.trim(), hash, email?.trim().toLowerCase() || null, isAdmin]
     );
     const user  = rows[0];
     const token = jwt.sign(
-      { id: user.id, nome: user.nome, usuario: user.usuario },
+      { id: user.id, nome: user.nome, usuario: user.usuario, admin: user.admin },
       process.env.JWT_SECRET,
       { expiresIn: '30d' }
     );
-    res.status(201).json({ token, user: { id: user.id, nome: user.nome, usuario: user.usuario } });
+    res.status(201).json({ token, user: { id: user.id, nome: user.nome, usuario: user.usuario, admin: user.admin } });
   } catch (e) {
     res.status(500).json({ erro: 'Erro interno.' });
   }
@@ -72,11 +75,11 @@ router.post('/login', authLimiter, async (req, res) => {
 
     const user  = rows[0];
     const token = jwt.sign(
-      { id: user.id, nome: user.nome, usuario: user.usuario },
+      { id: user.id, nome: user.nome, usuario: user.usuario, admin: user.admin },
       process.env.JWT_SECRET,
       { expiresIn: '30d' }
     );
-    res.json({ token, user: { id: user.id, nome: user.nome, usuario: user.usuario } });
+    res.json({ token, user: { id: user.id, nome: user.nome, usuario: user.usuario, admin: user.admin } });
   } catch (e) {
     res.status(500).json({ erro: 'Erro interno.' });
   }

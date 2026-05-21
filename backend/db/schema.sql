@@ -76,7 +76,9 @@ ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS reset_expires     TIMESTAMPTZ;
 -- ============================================================
 
 -- Campo ativo para bloquear usuários inadimplentes
-ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS ativo BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS ativo  BOOLEAN NOT NULL DEFAULT true;
+-- Campo admin: só o dono do app gerencia usuários
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS admin  BOOLEAN NOT NULL DEFAULT false;
 
 -- Adicionar usuario_id nas tabelas de negócio
 ALTER TABLE materiais ADD COLUMN IF NOT EXISTS usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE;

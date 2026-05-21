@@ -932,6 +932,8 @@ function startSession(user) {
   localStorage.setItem('sucata_user', JSON.stringify(user));
   const initials = user.nome.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
   document.getElementById('header-avatar').textContent = initials;
+  // Aba Usuários só visível para admin
+  document.getElementById('nav-usuarios').style.display = user.admin ? '' : 'none';
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').classList.add('active');
   goPage('dashboard');
