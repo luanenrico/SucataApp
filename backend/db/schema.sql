@@ -90,8 +90,8 @@ ALTER TABLE lotes  DROP CONSTRAINT IF EXISTS lotes_codigo_material_fkey;
 ALTER TABLE vendas DROP CONSTRAINT IF EXISTS vendas_codigo_lote_fkey;
 
 -- Remover unique constraints de coluna única (agora unique por usuário)
-ALTER TABLE materiais DROP CONSTRAINT IF EXISTS materiais_codigo_key;
-ALTER TABLE lotes     DROP CONSTRAINT IF EXISTS lotes_codigo_key;
+ALTER TABLE materiais DROP CONSTRAINT IF EXISTS materiais_codigo_key CASCADE;
+ALTER TABLE lotes     DROP CONSTRAINT IF EXISTS lotes_codigo_key CASCADE;
 
 -- Recriar como unique composto (codigo + usuario_id)
 DO $$ BEGIN
