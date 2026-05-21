@@ -8,15 +8,20 @@ function isDate(v)        { return typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$
 
 const PAGAMENTOS_VALIDOS = ['Dinheiro','PIX','Cartão de Débito','Cartão de Crédito','Transferência','Cheque','Boleto'];
 
-// GET /api/vendas?mes=5&ano=2026
+// GET /api/vendas?mes=5&ano=2026  ou  ?ano=2026  (sem mes = ano inteiro)
 router.get('/', auth, async (req, res) => {
   const mes = parseInt(req.query.mes);
   const ano = parseInt(req.query.ano);
   let sql = 'SELECT * FROM vendas WHERE usuario_id = $1';
   const params = [req.user.id];
-  if (!isNaN(mes) && !isNaN(ano) && mes >= 1 && mes <= 12 && ano >= 2000 && ano <= 2100) {
-    sql += ' AND EXTRACT(MONTH FROM data) = $2 AND EXTRACT(YEAR FROM data) = $3';
-    params.push(mes, ano);
+  if (!isNaN(ano) && ano >= 2000 && ano <= 2100) {
+    if (!isNaN(mes) && mes >= 1 && mes <= 12) {
+      sql += ' AND EXTRACT(MONTH FROM data) = $2 AND EXTRACT(YEAR FROM data) = $3';
+      params.push(mes, ano);
+    } else {
+      sql += ' AND EXTRACT(YEAR FROM data) = $2';
+      params.push(ano);
+    }
   }
   sql += ' ORDER BY data DESC, numero_venda';
   const { rows } = await db.query(sql, params);

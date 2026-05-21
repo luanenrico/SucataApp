@@ -444,10 +444,24 @@
 
     <!-- DASHBOARD -->
     <div class="page active" id="page-dashboard">
-      <div class="month-selector">
+      <!-- Abas Mensal / Anual -->
+      <div style="display:flex;gap:8px;padding:12px 16px 0">
+        <button id="dash-tab-mensal" onclick="setDashView('mensal')"
+          style="flex:1;padding:8px;border-radius:10px;border:none;font-weight:700;font-size:13px;cursor:pointer;background:var(--primary);color:white">Mensal</button>
+        <button id="dash-tab-anual" onclick="setDashView('anual')"
+          style="flex:1;padding:8px;border-radius:10px;border:none;font-weight:700;font-size:13px;cursor:pointer;background:#e5e7eb;color:var(--text-muted)">Anual</button>
+      </div>
+      <!-- Seletor mensal -->
+      <div class="month-selector" id="dash-sel-mensal">
         <button class="month-btn" onclick="dashChangeMes(-1)">‹</button>
         <div class="month-label" id="dash-mes-label">—</div>
         <button class="month-btn" onclick="dashChangeMes(1)">›</button>
+      </div>
+      <!-- Seletor anual -->
+      <div class="month-selector" id="dash-sel-anual" style="display:none">
+        <button class="month-btn" onclick="dashChangeAno(-1)">‹</button>
+        <div class="month-label" id="dash-ano-label">—</div>
+        <button class="month-btn" onclick="dashChangeAno(1)">›</button>
       </div>
       <div class="kpi-grid" id="dash-kpis"></div>
       <div class="card">
@@ -461,7 +475,7 @@
       </div>
       <div class="card">
         <div class="card-header">
-          <div class="card-title">Por material</div>
+          <div class="card-title" id="dash-mat-title">Por material</div>
           <span id="dash-mes-badge" class="badge badge-blue"></span>
         </div>
         <div id="dash-por-material"></div>
@@ -993,9 +1007,22 @@ function fabAction() {
 // ================================================================
 const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const now = new Date();
-let dashMes = now.getMonth();
-let dashAno = now.getFullYear();
+let dashMes  = now.getMonth();
+let dashAno  = now.getFullYear();
+let dashView = 'mensal'; // 'mensal' | 'anual'
 let chartInstance = null;
+
+function setDashView(view) {
+  dashView = view;
+  const isMensal = view === 'mensal';
+  document.getElementById('dash-tab-mensal').style.background    = isMensal ? 'var(--primary)' : '#e5e7eb';
+  document.getElementById('dash-tab-mensal').style.color         = isMensal ? 'white' : 'var(--text-muted)';
+  document.getElementById('dash-tab-anual').style.background     = !isMensal ? 'var(--primary)' : '#e5e7eb';
+  document.getElementById('dash-tab-anual').style.color          = !isMensal ? 'white' : 'var(--text-muted)';
+  document.getElementById('dash-sel-mensal').style.display       = isMensal ? '' : 'none';
+  document.getElementById('dash-sel-anual').style.display        = !isMensal ? '' : 'none';
+  renderDashboard();
+}
 
 function dashChangeMes(delta) {
   dashMes += delta;
@@ -1004,20 +1031,43 @@ function dashChangeMes(delta) {
   renderDashboard();
 }
 
+function dashChangeAno(delta) {
+  dashAno += delta;
+  renderDashboard();
+}
+
 async function renderDashboard() {
+  const isAnual = dashView === 'anual';
+
   document.getElementById('dash-mes-label').textContent = MESES[dashMes] + ' ' + dashAno;
-  document.getElementById('dash-mes-badge').textContent = MESES[dashMes];
+  document.getElementById('dash-ano-label').textContent = dashAno;
   document.getElementById('dash-ano-badge').textContent = dashAno;
+  document.getElementById('dash-mes-badge').textContent = isAnual ? dashAno : MESES[dashMes];
+  document.getElementById('dash-mat-title').textContent = isAnual ? 'Por material — ano todo' : 'Por material';
+
+  const vendasUrl = isAnual
+    ? `/vendas?ano=${dashAno}`
+    : `/vendas?mes=${dashMes + 1}&ano=${dashAno}`;
 
   const [vendas, resumo] = await Promise.all([
-    api('GET', `/vendas?mes=${dashMes + 1}&ano=${dashAno}`),
+    api('GET', vendasUrl),
     api('GET', `/vendas/resumo?ano=${dashAno}`),
   ]);
 
-  const receita = vendas.reduce((s, v) => s + Number(v.receita_total || 0), 0);
-  const lucro   = vendas.reduce((s, v) => s + Number(v.lucro || 0), 0);
-  const peso    = vendas.reduce((s, v) => s + Number(v.peso_vendido || 0), 0);
-  const margem  = receita > 0 ? (lucro / receita) * 100 : 0;
+  // KPIs — mensal usa vendas do mês; anual soma o resumo
+  let receita, lucro, peso, qtd;
+  if (isAnual) {
+    receita = resumo.reduce((s, r) => s + Number(r.receita || 0), 0);
+    lucro   = resumo.reduce((s, r) => s + Number(r.lucro   || 0), 0);
+    peso    = resumo.reduce((s, r) => s + Number(r.peso    || 0), 0);
+    qtd     = resumo.reduce((s, r) => s + Number(r.qtd_vendas || 0), 0);
+  } else {
+    receita = vendas.reduce((s, v) => s + Number(v.receita_total || 0), 0);
+    lucro   = vendas.reduce((s, v) => s + Number(v.lucro         || 0), 0);
+    peso    = vendas.reduce((s, v) => s + Number(v.peso_vendido  || 0), 0);
+    qtd     = vendas.length;
+  }
+  const margem = receita > 0 ? (lucro / receita) * 100 : 0;
 
   document.getElementById('dash-kpis').innerHTML = `
     <div class="kpi-card"><div class="kpi-icon">💰</div><div class="kpi-label">Receita</div><div class="kpi-value green">${fmt(receita)}</div></div>
@@ -1026,14 +1076,14 @@ async function renderDashboard() {
     <div class="kpi-card"><div class="kpi-icon">🎯</div><div class="kpi-label">Margem</div><div class="kpi-value ${margem >= 20 ? 'green' : 'orange'}">${fmtPct(margem)}</div></div>
   `;
 
-  const receitaMensal = Array.from({length: 12}, (_, i) => {
-    const row = resumo.find(r => r.mes === i + 1);
-    return Number(row?.receita || 0);
-  });
-  const lucroMensal = Array.from({length: 12}, (_, i) => {
-    const row = resumo.find(r => r.mes === i + 1);
-    return Number(row?.lucro || 0);
-  });
+  // Gráfico mensal (sempre mostra o ano todo)
+  const receitaMensal = Array.from({length: 12}, (_, i) => Number(resumo.find(r => r.mes === i + 1)?.receita || 0));
+  const lucroMensal   = Array.from({length: 12}, (_, i) => Number(resumo.find(r => r.mes === i + 1)?.lucro   || 0));
+
+  // Destaca o mês atual no modo mensal
+  const barColors = receitaMensal.map((_, i) =>
+    !isAnual && i === dashMes ? 'rgba(46,125,50,1)' : 'rgba(46,125,50,0.65)'
+  );
 
   if (chartInstance) chartInstance.destroy();
   chartInstance = new Chart(document.getElementById('chart-receita'), {
@@ -1041,8 +1091,8 @@ async function renderDashboard() {
     data: {
       labels: MESES.map(m => m.slice(0, 3)),
       datasets: [
-        { label: 'Receita', data: receitaMensal, backgroundColor: 'rgba(46,125,50,0.75)', borderRadius: 6 },
-        { label: 'Lucro',   data: lucroMensal,   backgroundColor: 'rgba(76,175,80,0.45)',  borderRadius: 6 }
+        { label: 'Receita', data: receitaMensal, backgroundColor: barColors, borderRadius: 6 },
+        { label: 'Lucro',   data: lucroMensal,   backgroundColor: 'rgba(76,175,80,0.4)', borderRadius: 6 }
       ]
     },
     options: {
@@ -1055,6 +1105,7 @@ async function renderDashboard() {
     }
   });
 
+  // Por material
   const porMat = {};
   vendas.forEach(v => {
     const k = v.nome_material || v.codigo_material;
@@ -1066,7 +1117,7 @@ async function renderDashboard() {
   const entries = Object.entries(porMat);
   const matEl = document.getElementById('dash-por-material');
   if (!entries.length) {
-    matEl.innerHTML = '<div class="empty-state" style="padding:20px 0"><div class="empty-sub">Sem vendas neste mês</div></div>';
+    matEl.innerHTML = `<div class="empty-state" style="padding:20px 0"><div class="empty-sub">Sem vendas ${isAnual ? 'neste ano' : 'neste mês'}</div></div>`;
   } else {
     matEl.innerHTML = entries.sort((a, b) => b[1].receita - a[1].receita).map(([nome, d]) => `
       <div class="mat-row">
