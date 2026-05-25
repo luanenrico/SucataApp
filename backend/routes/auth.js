@@ -41,7 +41,7 @@ router.post('/register', authLimiter, async (req, res) => {
     const isAdmin  = temAdmin.rows.length === 0;
     const hash = await bcrypt.hash(senha, 10);
     const { rows } = await db.query(
-      'INSERT INTO usuarios (nome, usuario, senha_hash, email, admin) VALUES ($1, $2, $3, $4, $5) RETURNING id, nome, usuario, admin, criado_em',
+      'INSERT INTO usuarios (nome, usuario, senha_hash, email, admin) VALUES ($1, $2, $3, $4, $5) RETURNING id, nome, usuario, admin, unidade, label_quantidade, criado_em',
       [nome.trim(), usuario.trim(), hash, email?.trim().toLowerCase() || null, isAdmin]
     );
     const user  = rows[0];
@@ -50,7 +50,7 @@ router.post('/register', authLimiter, async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: '30d' }
     );
-    res.status(201).json({ token, user: { id: user.id, nome: user.nome, usuario: user.usuario, admin: user.admin } });
+    res.status(201).json({ token, user: { id: user.id, nome: user.nome, usuario: user.usuario, admin: user.admin, unidade: user.unidade, label_quantidade: user.label_quantidade } });
   } catch (e) {
     res.status(500).json({ erro: 'Erro interno.' });
   }
@@ -79,7 +79,7 @@ router.post('/login', authLimiter, async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: '30d' }
     );
-    res.json({ token, user: { id: user.id, nome: user.nome, usuario: user.usuario, admin: user.admin } });
+    res.json({ token, user: { id: user.id, nome: user.nome, usuario: user.usuario, admin: user.admin, unidade: user.unidade || 'kg', label_quantidade: user.label_quantidade || 'Peso' } });
   } catch (e) {
     res.status(500).json({ erro: 'Erro interno.' });
   }

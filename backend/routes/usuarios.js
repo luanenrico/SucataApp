@@ -35,6 +35,25 @@ router.post('/', auth, soAdmin, async (req, res) => {
   }
 });
 
+// PUT /api/usuarios/me/config — salva configurações do próprio usuário
+router.put('/me/config', auth, async (req, res) => {
+  const UNIDADES_VALIDAS = ['kg', 'saco', 'tonelada', 'litro', 'unidade'];
+  const { unidade, label_quantidade } = req.body;
+  if (!UNIDADES_VALIDAS.includes(unidade))
+    return res.status(400).json({ erro: 'Unidade inválida.' });
+  if (!label_quantidade || label_quantidade.trim().length < 2 || label_quantidade.trim().length > 30)
+    return res.status(400).json({ erro: 'Label inválido (2–30 caracteres).' });
+  try {
+    const { rows } = await db.query(
+      'UPDATE usuarios SET unidade=$1, label_quantidade=$2 WHERE id=$3 RETURNING id, nome, usuario, email, ativo, admin, unidade, label_quantidade',
+      [unidade, label_quantidade.trim(), req.user.id]
+    );
+    res.json(rows[0]);
+  } catch (e) {
+    res.status(500).json({ erro: 'Erro interno.' });
+  }
+});
+
 // PUT /api/usuarios/:id/senha
 router.put('/:id/senha', auth, async (req, res) => {
   const { senhaAtual, novaSenha } = req.body;

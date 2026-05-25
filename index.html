@@ -429,7 +429,7 @@
       <h1 id="page-title">Dashboard</h1>
     </div>
     <div class="header-right">
-      <div class="avatar" id="header-avatar">U</div>
+      <div class="avatar" id="header-avatar" onclick="openConfig()" title="Configurações" style="cursor:pointer">U</div>
       <button class="logout-btn" onclick="doLogout()" title="Sair">
         <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -577,11 +577,11 @@
     </div>
     <div class="row-2">
       <div class="form-group">
-        <label class="form-label">Preço Venda (R$/kg)</label>
+        <label class="form-label" id="lbl-mat-preco">Preço Venda (R$/kg)</label>
         <input type="number" id="mat-preco" class="form-input" placeholder="0,00" step="0.01" min="0">
       </div>
       <div class="form-group">
-        <label class="form-label">Custo Padrão (R$/kg)</label>
+        <label class="form-label" id="lbl-mat-custo">Custo Padrão (R$/kg)</label>
         <input type="number" id="mat-custo" class="form-input" placeholder="0,00" step="0.01" min="0">
       </div>
     </div>
@@ -615,7 +615,7 @@
     </div>
     <div class="row-2">
       <div class="form-group">
-        <label class="form-label">Peso Comprado (kg)</label>
+        <label class="form-label" id="lbl-lote-peso">Peso Comprado (kg)</label>
         <input type="number" id="lote-peso" class="form-input" placeholder="0" step="0.01" min="0" oninput="calcLoteCusto()">
       </div>
       <div class="form-group">
@@ -624,7 +624,7 @@
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">Custo/kg (calculado)</label>
+      <label class="form-label" id="lbl-lote-custo-kg">Custo/kg (calculado)</label>
       <input type="text" id="lote-custo-kg" class="form-input" placeholder="Preencha peso e custo" readonly>
     </div>
     <div class="form-group">
@@ -667,11 +667,11 @@
     </div>
     <div class="row-2">
       <div class="form-group">
-        <label class="form-label">Peso Vendido (kg)</label>
+        <label class="form-label" id="lbl-venda-peso">Peso Vendido (kg)</label>
         <input type="number" id="venda-peso" class="form-input" placeholder="0" step="0.01" min="0" oninput="calcVendaPreview()">
       </div>
       <div class="form-group">
-        <label class="form-label">Valor de Venda (R$/kg)</label>
+        <label class="form-label" id="lbl-venda-valor-kg">Valor de Venda (R$/kg)</label>
         <input type="number" id="venda-valor-kg" class="form-input" placeholder="0,00" step="0.01" min="0" oninput="calcVendaPreview()">
       </div>
     </div>
@@ -751,6 +751,40 @@
 </div>
 
 <!-- Modal: Alterar Senha -->
+<div class="modal-overlay" id="modal-config">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">⚙️ Configurações</div>
+    <div class="form-group">
+      <label class="form-label">Unidade de medida</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px" id="config-unidades">
+        <label style="display:flex;align-items:center;gap:8px;padding:10px;border:2px solid #e5e7eb;border-radius:10px;cursor:pointer">
+          <input type="radio" name="cfg-unidade" value="kg"> <span>⚖️ kg <small style="color:#888;display:block">Sucata, metais</small></span>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;padding:10px;border:2px solid #e5e7eb;border-radius:10px;cursor:pointer">
+          <input type="radio" name="cfg-unidade" value="saco"> <span>🌽 saco <small style="color:#888;display:block">Grãos, milho</small></span>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;padding:10px;border:2px solid #e5e7eb;border-radius:10px;cursor:pointer">
+          <input type="radio" name="cfg-unidade" value="tonelada"> <span>🏗️ tonelada <small style="color:#888;display:block">Grandes cargas</small></span>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;padding:10px;border:2px solid #e5e7eb;border-radius:10px;cursor:pointer">
+          <input type="radio" name="cfg-unidade" value="litro"> <span>💧 litro <small style="color:#888;display:block">Líquidos</small></span>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;padding:10px;border:2px solid #e5e7eb;border-radius:10px;cursor:pointer">
+          <input type="radio" name="cfg-unidade" value="unidade"> <span>📦 unidade <small style="color:#888;display:block">Peças, outros</small></span>
+        </label>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nome do campo de quantidade</label>
+      <input type="text" id="cfg-label" class="form-input" placeholder="Ex: Peso, Quantidade, Volume" maxlength="30">
+    </div>
+    <div id="config-error" class="form-error hidden"></div>
+    <button class="btn btn-primary" onclick="saveConfig()">Salvar Configurações</button>
+    <button class="btn btn-cancel" onclick="closeModal('modal-config')">Cancelar</button>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-senha">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -820,9 +854,56 @@ function fmt(v) {
   if (v === null || v === undefined || isNaN(Number(v))) return '—';
   return 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
+function getUnidade()   { return currentUser?.unidade          || 'kg';    }
+function getLabelQtd()  { return currentUser?.label_quantidade  || 'Peso';  }
 function fmtKg(v) {
   if (v === null || v === undefined || isNaN(Number(v))) return '—';
-  return Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' kg';
+  return Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + getUnidade();
+}
+function fmtValUnit(v) {
+  if (v === null || v === undefined || isNaN(Number(v))) return '—';
+  return 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '/' + getUnidade();
+}
+function updateUnitLabels() {
+  const u = getUnidade();
+  const l = getLabelQtd();
+  const els = {
+    'lbl-mat-preco':      `Preço Venda (R$/${u})`,
+    'lbl-mat-custo':      `Custo Padrão (R$/${u})`,
+    'lbl-lote-peso':      `${l} Comprado (${u})`,
+    'lbl-lote-custo-kg':  `Custo/${u} (calculado)`,
+    'lbl-venda-peso':     `${l} Vendido (${u})`,
+    'lbl-venda-valor-kg': `Valor de Venda (R$/${u})`,
+  };
+  Object.entries(els).forEach(([id, txt]) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = txt;
+  });
+}
+
+function openConfig() {
+  const u = getUnidade();
+  const l = getLabelQtd();
+  document.querySelectorAll('input[name="cfg-unidade"]').forEach(r => { r.checked = r.value === u; });
+  document.getElementById('cfg-label').value = l;
+  document.getElementById('config-error').classList.add('hidden');
+  openModal('modal-config');
+}
+
+async function saveConfig() {
+  const unidade = document.querySelector('input[name="cfg-unidade"]:checked')?.value;
+  const label_quantidade = document.getElementById('cfg-label').value.trim();
+  const errEl = document.getElementById('config-error');
+  if (!unidade) { errEl.textContent = 'Selecione uma unidade.'; errEl.classList.remove('hidden'); return; }
+  if (!label_quantidade) { errEl.textContent = 'Informe o nome do campo.'; errEl.classList.remove('hidden'); return; }
+  try {
+    const updated = await api('PUT', '/usuarios/me/config', { unidade, label_quantidade });
+    currentUser = { ...currentUser, unidade: updated.unidade, label_quantidade: updated.label_quantidade };
+    localStorage.setItem('sucata_user', JSON.stringify(currentUser));
+    updateUnitLabels();
+    closeModal('modal-config');
+    toast('Configurações salvas!');
+  } catch (e) { errEl.textContent = e.message; errEl.classList.remove('hidden'); }
 }
 function fmtPct(v) {
   if (v === null || v === undefined || isNaN(Number(v))) return '—';
@@ -947,6 +1028,7 @@ function startSession(user) {
   document.getElementById('nav-usuarios').style.display = user.admin ? '' : 'none';
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').classList.add('active');
+  updateUnitLabels();
   goPage('dashboard');
 }
 
@@ -1081,7 +1163,7 @@ async function renderDashboard() {
 
   document.getElementById('dash-kpis').innerHTML = `
     <div class="kpi-card"><div class="kpi-icon">💰</div><div class="kpi-label">Receita</div><div class="kpi-value green">${fmt(receita)}</div></div>
-    <div class="kpi-card"><div class="kpi-icon">📦</div><div class="kpi-label">Peso Total</div><div class="kpi-value">${fmtKg(peso)}</div></div>
+    <div class="kpi-card"><div class="kpi-icon">📦</div><div class="kpi-label">${getLabelQtd()} Total</div><div class="kpi-value">${fmtKg(peso)}</div></div>
     <div class="kpi-card"><div class="kpi-icon">📈</div><div class="kpi-label">Lucro</div><div class="kpi-value ${lucro >= 0 ? 'green' : 'red'}">${fmt(lucro)}</div></div>
     <div class="kpi-card"><div class="kpi-icon">🎯</div><div class="kpi-label">Margem</div><div class="kpi-value ${margem >= 20 ? 'green' : 'orange'}">${fmtPct(margem)}</div></div>
   `;
@@ -1386,7 +1468,7 @@ async function renderVendas() {
     <div class="summary-chip"><div class="kpi-label">Vendas</div><div class="kpi-value">${vendas.length}</div></div>
     <div class="summary-chip"><div class="kpi-label">Receita</div><div class="kpi-value green">${fmt(receita)}</div></div>
     <div class="summary-chip"><div class="kpi-label">Lucro</div><div class="kpi-value ${lucro >= 0 ? 'green' : 'red'}">${fmt(lucro)}</div></div>
-    <div class="summary-chip"><div class="kpi-label">Peso</div><div class="kpi-value">${fmtKg(peso)}</div></div>`;
+    <div class="summary-chip"><div class="kpi-label">${getLabelQtd()}</div><div class="kpi-value">${fmtKg(peso)}</div></div>`;
 
   const el = document.getElementById('vendas-list');
   if (!vendas.length) {

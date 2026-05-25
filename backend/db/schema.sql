@@ -76,32 +76,20 @@ ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS reset_expires     TIMESTAMPTZ;
 -- ============================================================
 
 -- Campo ativo para bloquear usuários inadimplentes
-ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS ativo  BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS ativo            BOOLEAN      NOT NULL DEFAULT true;
 -- Campo admin: só o dono do app gerencia usuários
-ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS admin  BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS admin            BOOLEAN      NOT NULL DEFAULT false;
+-- Configuração de unidade de medida por usuário
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS unidade          VARCHAR(20)  NOT NULL DEFAULT 'kg';
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS label_quantidade VARCHAR(30)  NOT NULL DEFAULT 'Peso';
 
 -- Adicionar usuario_id nas tabelas de negócio
 ALTER TABLE materiais ADD COLUMN IF NOT EXISTS usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE;
 ALTER TABLE lotes     ADD COLUMN IF NOT EXISTS usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE;
 ALTER TABLE vendas    ADD COLUMN IF NOT EXISTS usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE;
 
--- Remover FKs que referenciam colunas que deixarão de ser globalmente únicas
-ALTER TABLE lotes  DROP CONSTRAINT IF EXISTS lotes_codigo_material_fkey;
-ALTER TABLE vendas DROP CONSTRAINT IF EXISTS vendas_codigo_lote_fkey;
-
--- Remover unique constraints de coluna única (agora unique por usuário)
-ALTER TABLE materiais DROP CONSTRAINT IF EXISTS materiais_codigo_key CASCADE;
-ALTER TABLE lotes     DROP CONSTRAINT IF EXISTS lotes_codigo_key CASCADE;
-
--- Recriar como unique composto (codigo + usuario_id)
-DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'materiais_codigo_usuario_uq') THEN
-    ALTER TABLE materiais ADD CONSTRAINT materiais_codigo_usuario_uq UNIQUE (codigo, usuario_id);
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'lotes_codigo_usuario_uq') THEN
-    ALTER TABLE lotes ADD CONSTRAINT lotes_codigo_usuario_uq UNIQUE (codigo, usuario_id);
-  END IF;
-END $$;
+-- Unique composto por usuário (já aplicado diretamente no banco)
+-- materiais_codigo_usuario_uq e lotes_codigo_usuario_uq criados via migração manual
 
 -- Índices para performance
 CREATE INDEX IF NOT EXISTS idx_vendas_data       ON vendas(data);
