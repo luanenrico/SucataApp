@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>SucataApp</title>
+  <title>NegócioApp</title>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <meta name="theme-color" content="#2E7D32">
@@ -342,9 +342,9 @@
 
 <!-- ===== LOGIN SCREEN ===== -->
 <div id="login-screen">
-  <div class="login-logo">♻️</div>
-  <div class="login-title">SucataApp</div>
-  <div class="login-subtitle">Gestão de materiais de sucata</div>
+  <div class="login-logo">💰</div>
+  <div class="login-title">NegócioApp</div>
+  <div class="login-subtitle">Gestão de vendas e estoque</div>
 
   <div class="login-card">
     <div class="login-tab-row">
@@ -425,7 +425,7 @@
 <div id="app">
   <div class="app-header">
     <div>
-      <div class="app-header-label">♻️ SucataApp</div>
+      <div class="app-header-label">💰 NegócioApp</div>
       <h1 id="page-title">Dashboard</h1>
     </div>
     <div class="header-right">
@@ -812,7 +812,7 @@
 // API CLIENT
 // ================================================================
 const API_BASE = '/api';
-let _token = localStorage.getItem('sucata_token') || null;
+let _token = localStorage.getItem('negocio_token') || null;
 
 // Cache local para cálculos do frontend
 let _materiais = [];
@@ -831,8 +831,8 @@ async function api(method, path, body) {
   return data;
 }
 
-function saveToken(t) { _token = t; localStorage.setItem('sucata_token', t); }
-function clearToken()  { _token = null; localStorage.removeItem('sucata_token'); }
+function saveToken(t) { _token = t; localStorage.setItem('negocio_token', t); }
+function clearToken()  { _token = null; localStorage.removeItem('negocio_token'); }
 
 // ================================================================
 // SANITIZAÇÃO XSS — escapa HTML em todos os dados vindos do servidor
@@ -899,7 +899,7 @@ async function saveConfig() {
   try {
     const updated = await api('PUT', '/usuarios/me/config', { unidade, label_quantidade });
     currentUser = { ...currentUser, unidade: updated.unidade, label_quantidade: updated.label_quantidade };
-    localStorage.setItem('sucata_user', JSON.stringify(currentUser));
+    localStorage.setItem('negocio_user', JSON.stringify(currentUser));
     updateUnitLabels();
     closeModal('modal-config');
     toast('Configurações salvas!');
@@ -1021,7 +1021,7 @@ async function doResetSenha() {
 
 function startSession(user) {
   currentUser = user;
-  localStorage.setItem('sucata_user', JSON.stringify(user));
+  localStorage.setItem('negocio_user', JSON.stringify(user));
   const initials = user.nome.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
   document.getElementById('header-avatar').textContent = initials;
   // Aba Usuários só visível para admin
@@ -1034,7 +1034,7 @@ function startSession(user) {
 
 function doLogout() {
   clearToken();
-  localStorage.removeItem('sucata_user');
+  localStorage.removeItem('negocio_user');
   currentUser = null;
   _materiais = []; _lotes = []; _vendas = [];
   document.getElementById('app').classList.remove('active');
@@ -1234,7 +1234,7 @@ async function renderMateriais() {
   }
   el.innerHTML = _materiais.map(m => `
     <div class="list-item">
-      <div class="list-icon">♻️</div>
+      <div class="list-icon">💰</div>
       <div class="list-body">
         <div class="list-title">${esc(m.tipo)}</div>
         <div class="list-sub">${esc(m.codigo)}</div>
@@ -1799,7 +1799,7 @@ async function saveAlterarSenha() {
     return;
   }
 
-  const storedUser = localStorage.getItem('sucata_user');
+  const storedUser = localStorage.getItem('negocio_user');
   if (_token && storedUser) {
     try {
       const user = JSON.parse(storedUser);

@@ -1,5 +1,5 @@
 // Mude esta versão sempre que quiser forçar atualização em todos os usuários
-const CACHE = 'sucata-v3';
+const CACHE = 'negocio-v4';
 
 // Apenas assets estáticos que raramente mudam
 const STATIC_ASSETS = [

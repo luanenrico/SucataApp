@@ -1,7 +1,7 @@
 {
-  "name": "SucataApp — Gestão de Sucata",
-  "short_name": "SucataApp",
-  "description": "Gestão de materiais de sucata: lotes, vendas, dashboard e relatórios",
+  "name": "NegócioApp — Gestão de Vendas",
+  "short_name": "NegócioApp",
+  "description": "Gestão de vendas, compras, estoque e lucro",
   "start_url": "/index.html",
   "display": "standalone",
   "orientation": "portrait",
